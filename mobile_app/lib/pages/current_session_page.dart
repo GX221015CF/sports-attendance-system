@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../config/supabase_config.dart';
 import '../models/attendance_session.dart';
+import '../services/admin_auth_service.dart';
 import '../services/attendance_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_formatter.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_state.dart';
 import '../widgets/status_tag.dart';
+import 'admin/admin_home_page.dart';
+import 'admin/admin_login_page.dart';
 import 'session_member_list_page.dart';
 
 class CurrentSessionPage extends StatefulWidget {
@@ -119,13 +122,82 @@ class _CurrentSessionPageState extends State<CurrentSessionPage> {
         .then((_) => _loadCurrentSession());
   }
 
+  void _openAdminEntry() {
+    final adminAuthService = AdminAuthService();
+    final page = adminAuthService.isSignedIn
+        ? const AdminHomePage()
+        : const AdminLoginPage();
+
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(body: SafeArea(child: _buildBody(context)));
   }
 
   Widget _buildBody(BuildContext context) {
-    if (!hasSupabaseConfig) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isLandscape =
+            constraints.maxWidth > constraints.maxHeight ||
+            constraints.maxWidth >= 720;
+        final padding = isLandscape
+            ? const EdgeInsets.fromLTRB(18, 0, 18, 18)
+            : const EdgeInsets.fromLTRB(22, 0, 22, 24);
+
+        return RefreshIndicator(
+          onRefresh: _loadCurrentSession,
+          child: ListView(
+            padding: padding,
+            children: [
+              _TopBar(compact: isLandscape, onAdminPressed: _openAdminEntry),
+              SizedBox(height: isLandscape ? 8 : 12),
+              _CurrentSessionContent(
+                hasConfig: hasSupabaseConfig,
+                loading: _loading,
+                errorMessage: _errorMessage,
+                session: _session,
+                stats: _stats,
+                compact: isLandscape,
+                onRefresh: _loadCurrentSession,
+                onEnterMembers: _openMemberList,
+                onAdminPressed: _openAdminEntry,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CurrentSessionContent extends StatelessWidget {
+  const _CurrentSessionContent({
+    required this.hasConfig,
+    required this.loading,
+    required this.errorMessage,
+    required this.session,
+    required this.stats,
+    required this.compact,
+    required this.onRefresh,
+    required this.onEnterMembers,
+    required this.onAdminPressed,
+  });
+
+  final bool hasConfig;
+  final bool loading;
+  final String? errorMessage;
+  final AttendanceSession? session;
+  final Map<String, int> stats;
+  final bool compact;
+  final VoidCallback onRefresh;
+  final VoidCallback onEnterMembers;
+  final VoidCallback onAdminPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!hasConfig) {
       return const EmptyState(
         icon: Icons.settings_outlined,
         title: '未配置 Supabase',
@@ -133,60 +205,271 @@ class _CurrentSessionPageState extends State<CurrentSessionPage> {
       );
     }
 
-    if (_loading && _session == null && _errorMessage == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_errorMessage != null) {
-      return ErrorState(
-        title: '读取失败',
-        message: _errorMessage!,
-        retrying: _loading,
-        onRetry: _loadCurrentSession,
+    if (loading && session == null && errorMessage == null) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 120),
+        child: Center(child: CircularProgressIndicator()),
       );
     }
 
-    if (_session == null) {
-      return EmptyState(
-        icon: Icons.directions_run_outlined,
-        title: '当前暂无进行中的签到',
-        message: '在管理员后台创建签到任务后，这里会显示今日签到信息。',
-        action: ElevatedButton.icon(
-          onPressed: _loading ? null : _loadCurrentSession,
-          icon: const Icon(Icons.refresh),
-          label: const Text('刷新'),
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadCurrentSession,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+    if (errorMessage != null) {
+      return Column(
         children: [
-          const _HeroHeader(),
-          const SizedBox(height: 16),
-          _SessionCard(session: _session!),
-          const SizedBox(height: 16),
-          _StatsGrid(stats: _stats),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _loading ? null : _loadCurrentSession,
-                  icon: const Icon(Icons.refresh),
-                  label: Text(_loading ? '刷新中...' : '刷新'),
+          ErrorState(
+            title: '数据加载失败',
+            message: '当前签到读取失败，请检查网络连接后重试。',
+            retrying: loading,
+            onRetry: onRefresh,
+          ),
+          _AdminHintCard(onAdminPressed: onAdminPressed),
+        ],
+      );
+    }
+
+    final activeSession = session;
+    if (activeSession == null) {
+      return Column(
+        children: [
+          EmptyState(
+            icon: Icons.event_busy_outlined,
+            title: '当前暂无进行中的签到',
+            message: '所有训练或比赛签到都已结束，或管理员尚未创建新的签到。',
+            action: ElevatedButton.icon(
+              onPressed: loading ? null : onRefresh,
+              icon: const Icon(Icons.refresh),
+              label: const Text('刷新'),
+            ),
+          ),
+          _AdminHintCard(onAdminPressed: onAdminPressed),
+        ],
+      );
+    }
+
+    if (compact) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _HeroCard(
+              session: activeSession,
+              compact: true,
+              onRefresh: onRefresh,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: _TaskPanel(
+              session: activeSession,
+              stats: stats,
+              loading: loading,
+              compact: true,
+              onRefresh: onRefresh,
+              onEnter: onEnterMembers,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        _HeroCard(session: activeSession, compact: false, onRefresh: onRefresh),
+        const SizedBox(height: 14),
+        _TaskPanel(
+          session: activeSession,
+          stats: stats,
+          loading: loading,
+          compact: false,
+          onRefresh: onRefresh,
+          onEnter: onEnterMembers,
+        ),
+      ],
+    );
+  }
+}
+
+class _AdminHintCard extends StatelessWidget {
+  const _AdminHintCard({required this.onAdminPressed});
+
+  final VoidCallback onAdminPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.admin_panel_settings_outlined,
+                color: AppTheme.primary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '管理员可进入后台创建新的签到或管理成员。',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textMuted,
+                  fontWeight: FontWeight.w700,
+                  height: 1.35,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: ElevatedButton.icon(
-                  onPressed: _openMemberList,
-                  icon: const Icon(Icons.login),
-                  label: const Text('进入签到'),
+            ),
+            const SizedBox(width: 10),
+            OutlinedButton(onPressed: onAdminPressed, child: const Text('管理员')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.compact, required this.onAdminPressed});
+
+  final bool compact;
+  final VoidCallback onAdminPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: compact ? 52 : 64,
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: const Icon(Icons.directions_run, color: AppTheme.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              '今日签到',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: AppTheme.textStrong,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          Text(
+            formatDateTime(DateTime.now()).substring(5, 10),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: AppTheme.textMuted,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            tooltip: '管理员',
+            onPressed: onAdminPressed,
+            icon: const Icon(
+              Icons.admin_panel_settings_outlined,
+              color: AppTheme.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroCard extends StatelessWidget {
+  const _HeroCard({
+    required this.session,
+    required this.compact,
+    required this.onRefresh,
+  });
+
+  final AttendanceSession session;
+  final bool compact;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(compact ? 18 : 22),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1D4ED8), Color(0xFF1E3A8A)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primary.withValues(alpha: 0.18),
+            blurRadius: 28,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -18,
+            top: -28,
+            child: Icon(
+              Icons.fitness_center,
+              size: compact ? 112 : 150,
+              color: Colors.white.withValues(alpha: 0.10),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const StatusTag(status: 'normal'),
+                  const Spacer(),
+                  IconButton(
+                    tooltip: '刷新',
+                    onPressed: onRefresh,
+                    icon: const Icon(Icons.refresh, color: Colors.white),
+                  ),
+                ],
+              ),
+              SizedBox(height: compact ? 8 : 18),
+              Text(
+                session.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: compact ? 28 : 36,
                 ),
+              ),
+              SizedBox(height: compact ? 12 : 20),
+              _HeroTimeRow(
+                icon: Icons.schedule,
+                label: '规定签到',
+                value: formatDateTime(session.requiredTime),
+              ),
+              const SizedBox(height: 8),
+              _HeroTimeRow(
+                icon: Icons.alarm_off_outlined,
+                label: '结束时间',
+                value: formatDateTime(session.endTime),
               ),
             ],
           ),
@@ -196,137 +479,8 @@ class _CurrentSessionPageState extends State<CurrentSessionPage> {
   }
 }
 
-class _HeroHeader extends StatelessWidget {
-  const _HeroHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppTheme.primary, Color(0xFF2563EB), AppTheme.secondary],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primary.withValues(alpha: 0.18),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '运动队签到',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '快速查看训练签到进度',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.86),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            width: 58,
-            height: 58,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.16),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.directions_run,
-              color: Colors.white,
-              size: 34,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SessionCard extends StatelessWidget {
-  const _SessionCard({required this.session});
-
-  final AttendanceSession session;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    session.title,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppTheme.textStrong,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                const StatusTag(status: 'active'),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _TimeBox(
-                    icon: Icons.schedule,
-                    label: '规定签到',
-                    value: formatDateTime(session.requiredTime),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _TimeBox(
-                    icon: Icons.flag_outlined,
-                    label: '结束时间',
-                    value: formatDateTime(session.endTime),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TimeBox extends StatelessWidget {
-  const _TimeBox({
+class _HeroTimeRow extends StatelessWidget {
+  const _HeroTimeRow({
     required this.icon,
     required this.label,
     required this.value,
@@ -338,31 +492,141 @@ class _TimeBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white.withValues(alpha: 0.88), size: 18),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Colors.white.withValues(alpha: 0.76),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TaskPanel extends StatelessWidget {
+  const _TaskPanel({
+    required this.session,
+    required this.stats,
+    required this.loading,
+    required this.compact,
+    required this.onRefresh,
+    required this.onEnter,
+  });
+
+  final AttendanceSession session;
+  final Map<String, int> stats;
+  final bool loading;
+  final bool compact;
+  final VoidCallback onRefresh;
+  final VoidCallback onEnter;
+
+  int get total => stats['total'] ?? 0;
+  int get checked => stats['checked'] ?? 0;
+  int get pending => stats['pending'] ?? 0;
+  int get normal => stats['normal'] ?? 0;
+  int get late => stats['late'] ?? 0;
+  int get absent => stats['absent'] ?? 0;
+  double get completion => total == 0 ? 0 : checked / total;
+
+  @override
+  Widget build(BuildContext context) {
+    final rateText = '${(completion * 100).toStringAsFixed(0)}%';
+
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(compact ? 16 : 18),
       decoration: BoxDecoration(
-        color: AppTheme.background,
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.035),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: AppTheme.primary, size: 22),
-          const SizedBox(height: 10),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppTheme.textMuted,
-              fontWeight: FontWeight.w700,
+          Row(
+            children: [
+              Text(
+                '签到总览',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppTheme.textStrong,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const Spacer(),
+              _RateBadge(rateText: rateText),
+            ],
+          ),
+          SizedBox(height: compact ? 12 : 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 9,
+              value: completion.clamp(0, 1).toDouble(),
+              backgroundColor: const Color(0xFFE2E8F0),
+              color: AppTheme.secondary,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppTheme.textStrong,
-              fontWeight: FontWeight.w800,
-            ),
+          SizedBox(height: compact ? 12 : 16),
+          _StatGrid(
+            compact: compact,
+            items: [
+              _StatItem('参与', total, AppTheme.primary),
+              _StatItem('已签', checked, AppTheme.success),
+              _StatItem('未签', pending, AppTheme.textMuted),
+              _StatItem('正常', normal, AppTheme.success),
+              _StatItem('迟到', late, AppTheme.secondary),
+              _StatItem('缺勤', absent, const Color(0xFFB91C1C)),
+            ],
+          ),
+          SizedBox(height: compact ? 12 : 18),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: loading ? null : onRefresh,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('刷新'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton.icon(
+                  onPressed: onEnter,
+                  icon: const Icon(Icons.login),
+                  label: const Text('进入签到'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.secondary,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -370,100 +634,108 @@ class _TimeBox extends StatelessWidget {
   }
 }
 
-class _StatsGrid extends StatelessWidget {
-  const _StatsGrid({required this.stats});
+class _RateBadge extends StatelessWidget {
+  const _RateBadge({required this.rateText});
 
-  final Map<String, int> stats;
+  final String rateText;
 
   @override
   Widget build(BuildContext context) {
-    final items = [
-      _StatItem('参与', stats['total'] ?? 0, AppTheme.primary, Icons.groups),
-      _StatItem('已签到', stats['checked'] ?? 0, AppTheme.success, Icons.done),
-      _StatItem('未签到', stats['pending'] ?? 0, Colors.blueGrey, Icons.timer),
-      _StatItem('迟到', stats['late'] ?? 0, AppTheme.secondary, Icons.warning),
-      _StatItem('缺勤', stats['absent'] ?? 0, AppTheme.error, Icons.close),
-    ];
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppTheme.secondary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '出勤率 $rateText',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: AppTheme.secondary,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
 
+class _StatGrid extends StatelessWidget {
+  const _StatGrid({required this.items, required this.compact});
+
+  final List<_StatItem> items;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: items.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.72,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: compact ? 3 : 2,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        mainAxisExtent: compact ? 72 : 76,
       ),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return _StatCard(item: item);
-      },
+      itemBuilder: (context, index) => _StatTile(item: items[index]),
     );
   }
 }
 
 class _StatItem {
-  const _StatItem(this.label, this.value, this.color, this.icon);
+  const _StatItem(this.label, this.value, this.color);
 
   final String label;
   final int value;
   final Color color;
-  final IconData icon;
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({required this.item});
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.item});
 
   final _StatItem item;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: item.color.withValues(alpha: 0.1)),
+        color: item.color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: item.color.withValues(alpha: 0.16)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: item.color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(item.icon, color: item.color, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    item.label,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textMuted,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${item.value}',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: item.color,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: 28,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                item.value.toString(),
+                maxLines: 1,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: item.color,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            item.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppTheme.textMuted,
+              fontWeight: FontWeight.w800,
+              height: 1.05,
+            ),
+          ),
+        ],
       ),
     );
   }

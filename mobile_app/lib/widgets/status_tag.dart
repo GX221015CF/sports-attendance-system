@@ -21,30 +21,53 @@ class StatusTag extends StatelessWidget {
   Color get _color {
     return switch (status) {
       'normal' => AppTheme.success,
-      'late' => AppTheme.error,
-      'absent' => Colors.deepOrange,
+      'late' => AppTheme.secondary,
+      'absent' => const Color(0xFFB91C1C),
       'closed' => Colors.deepOrange,
-      'active' => AppTheme.success,
+      'active' => AppTheme.primary,
       _ => Colors.blueGrey,
+    };
+  }
+
+  Color get _background {
+    return switch (status) {
+      'normal' => const Color(0xFFEAF8F0),
+      'late' => const Color(0xFFFFEFE5),
+      'absent' => const Color(0xFFFEE2E2),
+      'closed' => const Color(0xFFFFEFE5),
+      'active' => const Color(0xFFE8ECF8),
+      _ => const Color(0xFFE5E7EB),
     };
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: _color.withValues(alpha: 0.1),
-        border: Border.all(color: _color.withValues(alpha: 0.28)),
+        color: _background,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(
-        _label,
-        style: TextStyle(
-          color: _color,
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (status == 'active') ...[
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(color: _color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            _label,
+            style: TextStyle(
+              color: _color,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -40,6 +40,8 @@ class _SessionMemberListPageState extends State<SessionMemberListPage> {
       widget.session.status == 'closed' ||
       DateTime.now().isAfter(widget.session.endTime);
 
+  _MemberStats get _stats => _MemberStats.fromMembers(_members);
+
   List<SessionMember> get _filteredMembers {
     return _members.where((member) {
       final matchesKeyword =
@@ -168,8 +170,8 @@ class _SessionMemberListPageState extends State<SessionMemberListPage> {
         SnackBar(
           content: Text(
             preview.status == 'late'
-                ? '已完成签到，迟到 ${preview.lateMinutes} 分钟'
-                : '已完成签到，状态为正常',
+                ? '签到成功，迟到 ${preview.lateMinutes} 分钟'
+                : '签到成功，状态为正常',
           ),
         ),
       );
@@ -194,10 +196,7 @@ class _SessionMemberListPageState extends State<SessionMemberListPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('成员签到')),
-      body: SafeArea(child: _buildBody(context)),
-    );
+    return Scaffold(body: SafeArea(child: _buildBody(context)));
   }
 
   Widget _buildBody(BuildContext context) {
@@ -207,129 +206,330 @@ class _SessionMemberListPageState extends State<SessionMemberListPage> {
 
     if (_errorMessage != null) {
       return ErrorState(
-        title: '成员列表读取失败',
-        message: _errorMessage!,
+        title: '数据加载失败',
+        message: '成员签到列表读取失败，请检查网络连接后重试。',
         retrying: _loading,
         onRetry: _loadMembers,
       );
     }
 
-    final filteredMembers = _filteredMembers;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isLandscape =
+            constraints.maxWidth > constraints.maxHeight ||
+            constraints.maxWidth >= 720;
+        final horizontalPadding = isLandscape ? 18.0 : 20.0;
+        final filteredMembers = _filteredMembers;
 
-    return RefreshIndicator(
-      onRefresh: _loadMembers,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        children: [
-          _HeaderCard(session: widget.session, closed: _isExpiredOrClosed),
-          if (_isExpiredOrClosed) ...[
-            const SizedBox(height: 12),
-            const _EndedNotice(),
-          ],
-          const SizedBox(height: 16),
-          _SearchAndFilter(
-            controller: _searchController,
-            statusFilter: _statusFilter,
-            onSearchChanged: (value) {
-              setState(() {
-                _keyword = value.trim();
-              });
-            },
-            onStatusChanged: (value) {
-              setState(() {
-                _statusFilter = value;
-              });
-            },
-          ),
-          const SizedBox(height: 16),
-          if (filteredMembers.isEmpty)
-            const EmptyState(
-              icon: Icons.search_off,
-              title: '暂无成员',
-              message: '当前筛选条件下没有成员记录。',
-            )
-          else
-            ...filteredMembers.map(
-              (member) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: MemberCard(
-                  member: member,
-                  checking: _checkingMemberId == member.id,
-                  onCheckin: member.status == 'pending' && !_isExpiredOrClosed
-                      ? () => _handleCheckin(member)
-                      : null,
+        return RefreshIndicator(
+          onRefresh: _loadMembers,
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              0,
+              horizontalPadding,
+              20,
+            ),
+            children: [
+              _TopBar(title: widget.session.title, compact: isLandscape),
+              SizedBox(height: isLandscape ? 10 : 14),
+              _SessionHeader(
+                session: widget.session,
+                ended: _isExpiredOrClosed,
+                compact: isLandscape,
+              ),
+              SizedBox(height: isLandscape ? 10 : 14),
+              _OverviewStrip(stats: _stats, compact: isLandscape),
+              if (_isExpiredOrClosed) ...[
+                const SizedBox(height: 10),
+                const _EndedNotice(),
+              ],
+              SizedBox(height: isLandscape ? 10 : 14),
+              _SearchAndFilters(
+                compact: isLandscape,
+                controller: _searchController,
+                statusFilter: _statusFilter,
+                onSearchChanged: (value) {
+                  setState(() {
+                    _keyword = value.trim();
+                  });
+                },
+                onStatusChanged: (value) {
+                  setState(() {
+                    _statusFilter = value;
+                  });
+                },
+              ),
+              SizedBox(height: isLandscape ? 10 : 14),
+              if (filteredMembers.isEmpty)
+                const EmptyState(
+                  icon: Icons.search_off,
+                  title: '暂无成员',
+                  message: '当前筛选条件下没有成员记录。',
+                )
+              else
+                _MemberList(
+                  members: filteredMembers,
+                  isLandscape: isLandscape,
+                  checkingMemberId: _checkingMemberId,
+                  canCheckin: !_isExpiredOrClosed,
+                  onCheckin: _handleCheckin,
                 ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MemberStats {
+  const _MemberStats({
+    required this.total,
+    required this.checked,
+    required this.pending,
+    required this.normal,
+    required this.late,
+    required this.absent,
+  });
+
+  factory _MemberStats.fromMembers(List<SessionMember> members) {
+    var pending = 0;
+    var normal = 0;
+    var late = 0;
+    var absent = 0;
+
+    for (final member in members) {
+      switch (member.status) {
+        case 'normal':
+          normal++;
+        case 'late':
+          late++;
+        case 'absent':
+          absent++;
+        default:
+          pending++;
+      }
+    }
+
+    return _MemberStats(
+      total: members.length,
+      checked: normal + late,
+      pending: pending,
+      normal: normal,
+      late: late,
+      absent: absent,
+    );
+  }
+
+  final int total;
+  final int checked;
+  final int pending;
+  final int normal;
+  final int late;
+  final int absent;
+
+  double get attendanceRate => total == 0 ? 0 : checked / total;
+}
+
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.title, required this.compact});
+
+  final String title;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: compact ? 54 : 64,
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.w900,
               ),
             ),
+          ),
+          IconButton(
+            tooltip: '刷新',
+            icon: const Icon(Icons.refresh, color: AppTheme.primary),
+            onPressed: () => context
+                .findAncestorStateOfType<_SessionMemberListPageState>()
+                ?._loadMembers(),
+          ),
         ],
       ),
     );
   }
 }
 
-class _HeaderCard extends StatelessWidget {
-  const _HeaderCard({required this.session, required this.closed});
+class _SessionHeader extends StatelessWidget {
+  const _SessionHeader({
+    required this.session,
+    required this.ended,
+    required this.compact,
+  });
 
   final AttendanceSession session;
-  final bool closed;
+  final bool ended;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(compact ? 14 : 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1D4ED8), Color(0xFF1E3A8A)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: AppTheme.primary.withValues(alpha: 0.16),
+            blurRadius: 22,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppTheme.primary, AppTheme.secondary],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(Icons.groups, color: Colors.white),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  session.title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppTheme.textStrong,
+          Container(
+            width: compact ? 42 : 48,
+            height: compact ? 42 : 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.timer_outlined, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  ended ? '本次签到已结束' : '本次签到进行中',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-              ),
-              StatusTag(status: closed ? 'closed' : 'active'),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  '${formatDateTime(session.requiredTime).substring(11)} - ${formatDateTime(session.endTime).substring(11)}',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.84),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          _TimeLine(
-            icon: Icons.schedule,
-            label: '规定签到',
-            value: formatDateTime(session.requiredTime),
+          StatusTag(status: ended ? 'absent' : 'normal'),
+        ],
+      ),
+    );
+  }
+}
+
+class _OverviewStrip extends StatelessWidget {
+  const _OverviewStrip({required this.stats, required this.compact});
+
+  final _MemberStats stats;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final rate = '${(stats.attendanceRate * 100).toStringAsFixed(0)}%';
+    final items = [
+      _OverviewItem('参与', stats.total.toString(), AppTheme.primary),
+      _OverviewItem('已签', stats.checked.toString(), AppTheme.success),
+      _OverviewItem('未签', stats.pending.toString(), AppTheme.textMuted),
+      _OverviewItem('正常', stats.normal.toString(), AppTheme.success),
+      _OverviewItem('迟到', stats.late.toString(), AppTheme.secondary),
+      _OverviewItem('缺勤', stats.absent.toString(), const Color(0xFFB91C1C)),
+      _OverviewItem('出勤率', rate, AppTheme.secondary),
+    ];
+
+    return Container(
+      padding: EdgeInsets.all(compact ? 10 : 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Wrap(
+        spacing: compact ? 8 : 10,
+        runSpacing: compact ? 8 : 10,
+        children: items.map((item) {
+          final width = compact ? 88.0 : 92.0;
+          return SizedBox(
+            width: width,
+            child: _OverviewTile(item: item, highlight: item.label == '出勤率'),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _OverviewItem {
+  const _OverviewItem(this.label, this.value, this.color);
+
+  final String label;
+  final String value;
+  final Color color;
+}
+
+class _OverviewTile extends StatelessWidget {
+  const _OverviewTile({required this.item, required this.highlight});
+
+  final _OverviewItem item;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: item.color.withValues(alpha: highlight ? 0.14 : 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: item.color.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            item.value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: item.color,
+              fontWeight: FontWeight.w900,
+              height: 1,
+            ),
           ),
-          const SizedBox(height: 10),
-          _TimeLine(
-            icon: Icons.flag_outlined,
-            label: '结束时间',
-            value: formatDateTime(session.endTime),
+          const SizedBox(height: 3),
+          Text(
+            item.label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppTheme.textMuted,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),
@@ -343,7 +543,7 @@ class _EndedNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.deepOrange.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
@@ -368,60 +568,16 @@ class _EndedNotice extends StatelessWidget {
   }
 }
 
-class _TimeLine extends StatelessWidget {
-  const _TimeLine({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppTheme.background,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: AppTheme.primary),
-          const SizedBox(width: 8),
-          Text(
-            '$label：',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textMuted,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textStrong,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SearchAndFilter extends StatelessWidget {
-  const _SearchAndFilter({
+class _SearchAndFilters extends StatelessWidget {
+  const _SearchAndFilters({
+    required this.compact,
     required this.controller,
     required this.statusFilter,
     required this.onSearchChanged,
     required this.onStatusChanged,
   });
 
+  final bool compact;
   final TextEditingController controller;
   final String statusFilter;
   final ValueChanged<String> onSearchChanged;
@@ -429,106 +585,151 @@ class _SearchAndFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+    final search = TextField(
+      controller: controller,
+      onChanged: onSearchChanged,
+      decoration: const InputDecoration(
+        prefixIcon: Icon(Icons.search),
+        hintText: '按姓名搜索',
       ),
-      child: Column(
+    );
+
+    final chips = SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
         children: [
-          TextField(
-            controller: controller,
-            onChanged: onSearchChanged,
-            decoration: InputDecoration(
-              hintText: '按姓名搜索',
-              prefixIcon: const Icon(Icons.search),
-              fillColor: AppTheme.background,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
-            ),
+          _FilterChipItem(
+            label: '全部',
+            value: 'all',
+            selected: statusFilter == 'all',
+            onSelected: onStatusChanged,
           ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _FilterChipButton(
-                  label: '全部',
-                  value: 'all',
-                  selectedValue: statusFilter,
-                  onSelected: onStatusChanged,
-                ),
-                _FilterChipButton(
-                  label: '未签到',
-                  value: 'pending',
-                  selectedValue: statusFilter,
-                  onSelected: onStatusChanged,
-                ),
-                _FilterChipButton(
-                  label: '正常',
-                  value: 'normal',
-                  selectedValue: statusFilter,
-                  onSelected: onStatusChanged,
-                ),
-                _FilterChipButton(
-                  label: '迟到',
-                  value: 'late',
-                  selectedValue: statusFilter,
-                  onSelected: onStatusChanged,
-                ),
-                _FilterChipButton(
-                  label: '缺勤',
-                  value: 'absent',
-                  selectedValue: statusFilter,
-                  onSelected: onStatusChanged,
-                ),
-              ],
-            ),
+          _FilterChipItem(
+            label: '未签到',
+            value: 'pending',
+            selected: statusFilter == 'pending',
+            onSelected: onStatusChanged,
+          ),
+          _FilterChipItem(
+            label: '正常',
+            value: 'normal',
+            selected: statusFilter == 'normal',
+            onSelected: onStatusChanged,
+          ),
+          _FilterChipItem(
+            label: '迟到',
+            value: 'late',
+            selected: statusFilter == 'late',
+            onSelected: onStatusChanged,
+          ),
+          _FilterChipItem(
+            label: '缺勤',
+            value: 'absent',
+            selected: statusFilter == 'absent',
+            onSelected: onStatusChanged,
           ),
         ],
       ),
     );
+
+    if (compact) {
+      return Row(
+        children: [
+          Expanded(flex: 2, child: search),
+          const SizedBox(width: 12),
+          Expanded(flex: 3, child: chips),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [search, const SizedBox(height: 10), chips],
+    );
   }
 }
 
-class _FilterChipButton extends StatelessWidget {
-  const _FilterChipButton({
+class _FilterChipItem extends StatelessWidget {
+  const _FilterChipItem({
     required this.label,
     required this.value,
-    required this.selectedValue,
+    required this.selected,
     required this.onSelected,
   });
 
   final String label;
   final String value;
-  final String selectedValue;
+  final bool selected;
   final ValueChanged<String> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    final selected = value == selectedValue;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        onSelected: (_) => onSelected(value),
+      ),
+    );
+  }
+}
 
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => onSelected(value),
-      selectedColor: AppTheme.primary.withValues(alpha: 0.14),
-      backgroundColor: AppTheme.background,
-      labelStyle: TextStyle(
-        color: selected ? AppTheme.primary : AppTheme.textStrong,
-        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-      ),
-      side: BorderSide(
-        color: selected
-            ? AppTheme.primary
-            : Colors.black.withValues(alpha: 0.06),
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+class _MemberList extends StatelessWidget {
+  const _MemberList({
+    required this.members,
+    required this.isLandscape,
+    required this.checkingMemberId,
+    required this.canCheckin,
+    required this.onCheckin,
+  });
+
+  final List<SessionMember> members;
+  final bool isLandscape;
+  final String? checkingMemberId;
+  final bool canCheckin;
+  final ValueChanged<SessionMember> onCheckin;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLandscape) {
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: members.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 3.85,
+        ),
+        itemBuilder: (context, index) {
+          final member = members[index];
+          return MemberCard(
+            member: member,
+            checking: checkingMemberId == member.id,
+            onCheckin: member.status == 'pending' && canCheckin
+                ? () => onCheckin(member)
+                : null,
+          );
+        },
+      );
+    }
+
+    return Column(
+      children: [
+        for (final member in members)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: MemberCard(
+              member: member,
+              checking: checkingMemberId == member.id,
+              onCheckin: member.status == 'pending' && canCheckin
+                  ? () => onCheckin(member)
+                  : null,
+            ),
+          ),
+      ],
     );
   }
 }

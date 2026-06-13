@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/attendance_session.dart';
 import '../models/session_member.dart';
+import '../utils/name_sorter.dart';
 
 class AttendanceService {
   AttendanceService({SupabaseClient? client})
@@ -65,9 +66,7 @@ class AttendanceService {
         .order('created_at', ascending: true);
 
     final members = rows.map(SessionMember.fromJson).toList();
-    members.sort((a, b) => a.memberName.compareTo(b.memberName));
-
-    return members;
+    return sortMembersByPinyin(members);
   }
 
   Future<void> checkinMember({
