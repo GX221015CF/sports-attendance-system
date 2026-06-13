@@ -1,4 +1,4 @@
-import { Layout, Menu } from 'antd'
+﻿import { Layout, Menu } from 'antd'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 const { Header, Sider, Content } = Layout
@@ -6,6 +6,7 @@ const { Header, Sider, Content } = Layout
 const menuItems = [
   { key: '/dashboard', label: '数据看板' },
   { key: '/members', label: '成员管理' },
+  { key: '/groups', label: '分组管理' },
   { key: '/members/import', label: 'Excel 导入' },
   { key: '/sessions', label: '签到任务' },
   { key: '/sessions/create', label: '创建签到' },
@@ -26,6 +27,10 @@ function getSelectedKey(pathname: string) {
 
   if (pathname.startsWith('/members')) {
     return '/members'
+  }
+
+  if (pathname.startsWith('/groups')) {
+    return '/groups'
   }
 
   return pathname
@@ -59,3 +64,4 @@ export function AppLayout() {
     </Layout>
   )
 }
+

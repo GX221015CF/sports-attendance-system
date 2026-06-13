@@ -11,6 +11,7 @@ class SessionMember {
     required this.gender,
     required this.phone,
     required this.groupName,
+    required this.remark,
   });
 
   final String id;
@@ -24,6 +25,7 @@ class SessionMember {
   final String gender;
   final String phone;
   final String groupName;
+  final String remark;
 
   factory SessionMember.fromJson(Map<String, dynamic> json) {
     final memberJson = json['members'] as Map<String, dynamic>? ?? {};
@@ -44,6 +46,7 @@ class SessionMember {
       gender: memberJson['gender'] as String? ?? '-',
       phone: memberJson['phone'] as String? ?? '-',
       groupName: groupJson['name'] as String? ?? '未分组',
+      remark: json['remark'] as String? ?? '',
     );
   }
 }

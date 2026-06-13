@@ -95,13 +95,29 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
   }
 
   Future<void> _pickDateTime({required bool requiredTime}) async {
-    final current = requiredTime ? _requiredTime : _endTime;
     final now = DateTime.now();
+
+    if (!requiredTime && _requiredTime == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请先选择规定签到时间')));
+      return;
+    }
+
+    final current = requiredTime
+        ? _requiredTime
+        : (_endTime ?? _requiredTime?.add(const Duration(minutes: 30)));
+    final firstDate = requiredTime ? DateTime(now.year - 1) : _requiredTime!;
+    final initialDate = current ?? now;
+
     final date = await showDatePicker(
       context: context,
-      initialDate: current ?? now,
-      firstDate: DateTime(now.year - 1),
+      initialDate: initialDate.isBefore(firstDate) ? firstDate : initialDate,
+      firstDate: firstDate,
       lastDate: DateTime(now.year + 2),
+      helpText: requiredTime ? '选择规定签到日期' : '选择签到结束日期',
+      cancelText: '取消',
+      confirmText: '确定',
     );
 
     if (date == null || !mounted) {
@@ -111,9 +127,12 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(current ?? now),
+      helpText: requiredTime ? '选择规定签到时间' : '选择签到结束时间',
+      cancelText: '取消',
+      confirmText: '确定',
     );
 
-    if (time == null) {
+    if (time == null || !mounted) {
       return;
     }
 
@@ -125,11 +144,21 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
       time.minute,
     );
 
+    if (!requiredTime && !value.isAfter(_requiredTime!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('结束时间必须晚于规定签到时间')),
+      );
+      return;
+    }
+
     setState(() {
       if (requiredTime) {
         _requiredTime = value;
         if (_endTime == null || !_endTime!.isAfter(value)) {
           _endTime = value.add(const Duration(minutes: 30));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('结束时间已自动调整为规定时间后 30 分钟')),
+          );
         }
       } else {
         _endTime = value;

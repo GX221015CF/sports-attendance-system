@@ -88,6 +88,22 @@
   gap: 16px;
 }
 
+.groups-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.groups-toolbar,
+.groups-alert {
+  margin-top: 24px;
+}
+
+.groups-toolbar {
+  margin-bottom: 16px;
+}
+
 .import-page-header {
   display: flex;
   align-items: flex-start;
@@ -168,7 +184,19 @@
   margin-bottom: 16px;
 }
 
+.create-session-time-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 16px;
+}
+
 .create-session-actions {
   margin-top: 24px;
   margin-bottom: 0;
+}
+
+@media (max-width: 760px) {
+  .create-session-time-grid {
+    grid-template-columns: 1fr;
+  }
 }

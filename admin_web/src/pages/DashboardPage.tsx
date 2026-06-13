@@ -48,7 +48,7 @@ export function DashboardPage() {
               .from('session_members')
               .select('*', { count: 'exact', head: true })
               .eq('status', 'pending'),
-        ])
+          ])
 
         if (!ignore) {
           setStats({

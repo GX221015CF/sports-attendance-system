@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../services/admin_auth_service.dart';
 import '../../services/admin_dashboard_service.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/supabase_project_label.dart';
 import 'admin_create_session_page.dart';
+import 'admin_groups_page.dart';
 import 'admin_members_page.dart';
 import 'admin_sessions_page.dart';
 
@@ -115,6 +117,13 @@ class _AdminHomePageState extends State<AdminHomePage> {
     await _loadStats();
   }
 
+  Future<void> _openGroupsPage() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const AdminGroupsPage()));
+    await _loadStats();
+  }
+
   Future<void> _openCreateSessionPage() async {
     await Navigator.of(
       context,
@@ -146,6 +155,12 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 description: '查看、维护队员信息',
                 icon: Icons.groups_2_outlined,
                 onTap: _openMembersPage,
+              ),
+              _AdminFeature(
+                title: '分组管理',
+                description: '维护训练分组和描述',
+                icon: Icons.category_outlined,
+                onTap: _openGroupsPage,
               ),
               _AdminFeature(
                 title: '签到任务',
@@ -191,6 +206,8 @@ class _AdminHomePageState extends State<AdminHomePage> {
                         ),
                         SizedBox(height: compact ? 14 : 22),
                         _AdminHero(email: email),
+                        const SizedBox(height: 10),
+                        _ProjectLabel(label: getSupabaseProjectLabel()),
                         SizedBox(height: compact ? 14 : 22),
                         if (_loading && _stats == null)
                           const Padding(
@@ -241,6 +258,42 @@ class _AdminHomePageState extends State<AdminHomePage> {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _ProjectLabel extends StatelessWidget {
+  const _ProjectLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.cloud_done_outlined, color: AppTheme.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textMuted,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

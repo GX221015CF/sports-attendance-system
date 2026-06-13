@@ -54,11 +54,20 @@ sports-attendance-system/
 ## Supabase 配置
 
 1. 在 Supabase 控制台创建项目。
-2. 在 SQL Editor 中执行 `database/schema.sql`。
-3. 配置开发阶段 RLS 策略。
+2. 在 SQL Editor 中执行 `database/schema.sql`，用于创建表结构。
+3. 在 SQL Editor 中执行 `database/dev_rls_policies.sql`，用于配置开发阶段 RLS 策略。
 4. 在 Supabase Auth 中创建管理员用户。
 5. 不要提交 `service_role` key。
 6. 不要将数据库密码写入 Web 或 App。
+
+### RLS 开发策略说明
+
+- Web 后台未登录 Supabase Auth 时，通常以 `anon` 角色访问数据。
+- Flutter App 管理员使用 Supabase Auth 登录后，请求角色会变成 `authenticated`。
+- 如果 App 管理员登录后读不到数据，常见原因是 `authenticated` 角色缺少 RLS 策略。
+- 开发阶段需要同时给 `anon` 和 `authenticated` 配置表访问策略。
+- `database/dev_rls_policies.sql` 已覆盖 `groups`、`members`、`attendance_sessions`、`session_members` 四张表的开发阶段读写策略。
+- 这些策略比较宽松，只用于本地开发和 MVP 验证，生产环境上线前必须收紧。
 
 ## Web 后台运行
 

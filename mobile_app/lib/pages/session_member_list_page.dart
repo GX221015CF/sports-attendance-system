@@ -7,6 +7,7 @@ import '../services/time_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_formatter.dart';
 import '../widgets/checkin_confirm_dialog.dart';
+import '../widgets/edit_remark_dialog.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_state.dart';
 import '../widgets/member_card.dart';
@@ -194,6 +195,42 @@ class _SessionMemberListPageState extends State<SessionMemberListPage> {
     }
   }
 
+  Future<void> _openRemarkDialog(SessionMember member) async {
+    final changed = await showEditRemarkSheet(
+      context: context,
+      memberName: member.memberName,
+      statusLabel: _statusLabel(member.status),
+      initialRemark: member.remark,
+      onSave: (remark) => _attendanceService.updateSessionMemberRemark(
+        sessionMemberId: member.id,
+        remark: remark,
+      ),
+    );
+
+    if (changed != true || !mounted) {
+      return;
+    }
+
+    await _loadMembers();
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('备注已更新')));
+  }
+
+  String _statusLabel(String status) {
+    return switch (status) {
+      'normal' => '正常',
+      'late' => '迟到',
+      'absent' => '缺勤',
+      _ => '未签到',
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(body: SafeArea(child: _buildBody(context)));
@@ -274,6 +311,7 @@ class _SessionMemberListPageState extends State<SessionMemberListPage> {
                   checkingMemberId: _checkingMemberId,
                   canCheckin: !_isExpiredOrClosed,
                   onCheckin: _handleCheckin,
+                  onEditRemark: _openRemarkDialog,
                 ),
             ],
           ),
@@ -682,6 +720,7 @@ class _MemberList extends StatelessWidget {
     required this.checkingMemberId,
     required this.canCheckin,
     required this.onCheckin,
+    required this.onEditRemark,
   });
 
   final List<SessionMember> members;
@@ -689,6 +728,7 @@ class _MemberList extends StatelessWidget {
   final String? checkingMemberId;
   final bool canCheckin;
   final ValueChanged<SessionMember> onCheckin;
+  final ValueChanged<SessionMember> onEditRemark;
 
   @override
   Widget build(BuildContext context) {
@@ -701,7 +741,7 @@ class _MemberList extends StatelessWidget {
           crossAxisCount: 2,
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
-          childAspectRatio: 3.85,
+          mainAxisExtent: 132,
         ),
         itemBuilder: (context, index) {
           final member = members[index];
@@ -711,6 +751,7 @@ class _MemberList extends StatelessWidget {
             onCheckin: member.status == 'pending' && canCheckin
                 ? () => onCheckin(member)
                 : null,
+            onEditRemark: () => onEditRemark(member),
           );
         },
       );
@@ -727,6 +768,7 @@ class _MemberList extends StatelessWidget {
               onCheckin: member.status == 'pending' && canCheckin
                   ? () => onCheckin(member)
                   : null,
+              onEditRemark: () => onEditRemark(member),
             ),
           ),
       ],

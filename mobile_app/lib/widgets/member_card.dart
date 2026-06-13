@@ -10,11 +10,13 @@ class MemberCard extends StatelessWidget {
     super.key,
     required this.member,
     required this.onCheckin,
+    required this.onEditRemark,
     required this.checking,
   });
 
   final SessionMember member;
   final VoidCallback? onCheckin;
+  final VoidCallback onEditRemark;
   final bool checking;
 
   bool get _showCheckinButton =>
@@ -38,7 +40,7 @@ class MemberCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 84),
+      constraints: const BoxConstraints(minHeight: 118),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -57,7 +59,7 @@ class MemberCard extends StatelessWidget {
             Container(width: 5, color: _accentColor),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
                 child: Row(
                   children: [
                     Expanded(
@@ -69,6 +71,7 @@ class MemberCard extends StatelessWidget {
                       checking: checking,
                       showCheckinButton: _showCheckinButton,
                       onCheckin: onCheckin,
+                      onEditRemark: onEditRemark,
                     ),
                   ],
                 ),
@@ -126,6 +129,17 @@ class _MemberInfo extends StatelessWidget {
                 ? const Color(0xFFB45309)
                 : AppTheme.textMuted,
           ),
+        const SizedBox(height: 4),
+        Text(
+          '备注：${member.remark.trim().isEmpty ? '暂无备注' : member.remark}',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppTheme.textMuted,
+            fontWeight: FontWeight.w700,
+            height: 1.18,
+          ),
+        ),
       ],
     );
   }
@@ -171,35 +185,46 @@ class _TrailingStatus extends StatelessWidget {
     required this.checking,
     required this.showCheckinButton,
     required this.onCheckin,
+    required this.onEditRemark,
   });
 
   final SessionMember member;
   final bool checking;
   final bool showCheckinButton;
   final VoidCallback? onCheckin;
+  final VoidCallback onEditRemark;
 
   @override
   Widget build(BuildContext context) {
     if (showCheckinButton) {
-      return SizedBox(
-        width: 84,
-        height: 38,
-        child: ElevatedButton(
-          onPressed: checking ? null : onCheckin,
-          style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 84,
+            height: 36,
+            child: ElevatedButton(
+              onPressed: checking ? null : onCheckin,
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: checking
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('签到'),
             ),
           ),
-          child: checking
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('签到'),
-        ),
+          const SizedBox(height: 8),
+          _RemarkButton(onPressed: onEditRemark),
+        ],
       );
     }
 
@@ -219,7 +244,36 @@ class _TrailingStatus extends StatelessWidget {
             ),
           ),
         ],
+        const SizedBox(height: 8),
+        _RemarkButton(onPressed: onEditRemark),
       ],
+    );
+  }
+}
+
+class _RemarkButton extends StatelessWidget {
+  const _RemarkButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 84,
+      height: 30,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          padding: EdgeInsets.zero,
+          textStyle: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w800),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        child: const Text('编辑备注'),
+      ),
     );
   }
 }

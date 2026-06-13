@@ -91,10 +91,7 @@ export function MembersPage() {
       .select('id, name')
       .order('name', { ascending: true })
 
-    if (error) {
-      throw error
-    }
-
+    if (error) throw error
     setGroups((data ?? []) as GroupOption[])
   }, [])
 
@@ -105,14 +102,10 @@ export function MembersPage() {
 
       const { data, error } = await supabase
         .from('members')
-        .select(
-          'id, name, student_id, gender, phone, group_id, is_active, created_at, groups(name)',
-        )
+        .select('id, name, student_id, gender, phone, group_id, is_active, created_at, groups(name)')
         .order('student_id', { ascending: true })
 
-      if (error) {
-        throw error
-      }
+      if (error) throw error
 
       const rows = ((data ?? []) as RawMemberRow[]).map((item) => ({
         id: item.id,
@@ -128,9 +121,7 @@ export function MembersPage() {
 
       setMembers(rows)
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : '成员列表加载失败。',
-      )
+      setErrorMessage(error instanceof Error ? error.message : '成员列表加载失败。')
     } finally {
       setLoading(false)
     }
@@ -141,13 +132,10 @@ export function MembersPage() {
       try {
         await Promise.all([loadGroups(), loadMembers()])
       } catch (error) {
-        setErrorMessage(
-          error instanceof Error ? error.message : '成员页面数据加载失败。',
-        )
+        setErrorMessage(error instanceof Error ? error.message : '成员页面数据加载失败。')
         setLoading(false)
       }
     }
-
     loadPageData()
   }, [loadGroups, loadMembers])
 
@@ -161,76 +149,41 @@ export function MembersPage() {
 
   const filteredMembers = useMemo(() => {
     const keyword = nameKeyword.trim().toLowerCase()
-
     return members.filter((member) => {
-      const matchesName =
-        !keyword || member.name.toLowerCase().includes(keyword)
-      const matchesGroup =
-        groupFilter === 'all' || member.group_name === groupFilter
+      const matchesName = !keyword || member.name.toLowerCase().includes(keyword)
+      const matchesGroup = groupFilter === 'all' || member.group_name === groupFilter
       const matchesStatus =
         statusFilter === 'all' ||
         (statusFilter === 'active' && member.is_active) ||
         (statusFilter === 'inactive' && !member.is_active)
-
       return matchesName && matchesGroup && matchesStatus
     })
   }, [groupFilter, members, nameKeyword, statusFilter])
 
   const columns: ColumnsType<MemberRow> = [
-    {
-      title: '姓名',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: '学号',
-      dataIndex: 'student_id',
-      key: 'student_id',
-      render: (value: string | null) => value || '-',
-    },
-    {
-      title: '性别',
-      dataIndex: 'gender',
-      key: 'gender',
-      render: (value: string | null) => value || '-',
-    },
-    {
-      title: '手机号',
-      dataIndex: 'phone',
-      key: 'phone',
-      render: (value: string | null) => value || '-',
-    },
-    {
-      title: '分组',
-      dataIndex: 'group_name',
-      key: 'group_name',
-    },
+    { title: '姓名', dataIndex: 'name', key: 'name' },
+    { title: '学号', dataIndex: 'student_id', key: 'student_id', render: (value: string | null) => value || '-' },
+    { title: '性别', dataIndex: 'gender', key: 'gender', render: (value: string | null) => value || '-' },
+    { title: '手机号', dataIndex: 'phone', key: 'phone', render: (value: string | null) => value || '-' },
+    { title: '分组', dataIndex: 'group_name', key: 'group_name' },
     {
       title: '状态',
       dataIndex: 'is_active',
       key: 'is_active',
-      render: (isActive: boolean) =>
-        isActive ? (
-          <Tag color="green">在队</Tag>
-        ) : (
-          <Tag color="default">离队</Tag>
-        ),
+      render: (isActive: boolean) => isActive ? <Tag color="green">在队</Tag> : <Tag color="default">离队</Tag>,
     },
     {
       title: '创建时间',
       dataIndex: 'created_at',
       key: 'created_at',
-      render: (value: string | null) =>
-        value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '-',
+      render: (value: string | null) => value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '-',
     },
     {
       title: '操作',
       key: 'actions',
       render: (_, record) => (
         <Space size={4}>
-          <Button type="link" onClick={() => openEditModal(record)}>
-            编辑
-          </Button>
+          <Button type="link" onClick={() => openEditModal(record)}>编辑</Button>
           <Popconfirm
             title="确认删除该成员？"
             description="删除后将无法在成员列表中看到该成员。"
@@ -239,9 +192,7 @@ export function MembersPage() {
             okButtonProps={{ danger: true }}
             onConfirm={() => handleDeleteMember(record)}
           >
-            <Button type="link" danger>
-              删除
-            </Button>
+            <Button type="link" danger>删除</Button>
           </Popconfirm>
         </Space>
       ),
@@ -277,35 +228,23 @@ export function MembersPage() {
   async function handleSubmitMember(values: MemberFormValues) {
     try {
       setSaving(true)
-
       const payload = {
         name: values.name.trim(),
         student_id: emptyToNull(values.student_id),
         gender: values.gender ?? null,
         phone: emptyToNull(values.phone),
         group_id: values.group_id || null,
-        is_active: values.is_active,
+        is_active: values.is_active ?? true,
       }
-
       const { error } = editingMember
         ? await supabase.from('members').update(payload).eq('id', editingMember.id)
         : await supabase.from('members').insert(payload)
-
-      if (error) {
-        throw error
-      }
-
+      if (error) throw error
       messageApi.success(editingMember ? '成员已更新' : '成员已新增')
       closeModal()
       await loadMembers()
     } catch (error) {
-      messageApi.error(
-        error instanceof Error
-          ? error.message
-          : editingMember
-            ? '更新成员失败，请稍后重试。'
-            : '新增成员失败，请稍后重试。',
-      )
+      messageApi.error(error instanceof Error ? error.message : editingMember ? '更新成员失败，请稍后重试。' : '新增成员失败，请稍后重试。')
     } finally {
       setSaving(false)
     }
@@ -313,21 +252,12 @@ export function MembersPage() {
 
   async function handleDeleteMember(member: MemberRow) {
     try {
-      const { error } = await supabase
-        .from('members')
-        .delete()
-        .eq('id', member.id)
-
-      if (error) {
-        throw error
-      }
-
+      const { error } = await supabase.from('members').delete().eq('id', member.id)
+      if (error) throw error
       messageApi.success('成员已删除')
       await loadMembers()
     } catch (error) {
-      messageApi.error(
-        error instanceof Error ? error.message : '删除成员失败，请稍后重试。',
-      )
+      messageApi.error(error instanceof Error ? error.message : '删除成员失败，请稍后重试。')
     }
   }
 
@@ -339,109 +269,37 @@ export function MembersPage() {
           <Typography.Title level={1}>成员管理</Typography.Title>
           <p>查看队员基础信息，并按姓名、分组和状态筛选。</p>
         </div>
-        <Button type="primary" onClick={openCreateModal}>
-          新增成员
-        </Button>
+        <Button type="primary" onClick={openCreateModal}>新增成员</Button>
       </div>
 
-      {errorMessage && (
-        <Alert
-          className="members-alert"
-          message="成员列表加载失败"
-          description={errorMessage}
-          type="error"
-          showIcon
-        />
-      )}
+      {errorMessage && <Alert className="members-alert" message="成员列表加载失败" description={errorMessage} type="error" showIcon />}
 
       <Space className="members-toolbar" size={12} wrap>
-        <Input.Search
-          allowClear
-          placeholder="搜索姓名"
-          value={nameKeyword}
-          onChange={(event) => setNameKeyword(event.target.value)}
-          style={{ width: 220 }}
-        />
-        <Select
-          value={groupFilter}
-          options={groupOptions}
-          onChange={setGroupFilter}
-          style={{ width: 180 }}
-        />
+        <Input.Search allowClear placeholder="搜索姓名" value={nameKeyword} onChange={(event) => setNameKeyword(event.target.value)} style={{ width: 220 }} />
+        <Select value={groupFilter} options={groupOptions} onChange={setGroupFilter} style={{ width: 180 }} />
         <Select<MemberStatusFilter>
           value={statusFilter}
-          options={[
-            { label: '全部状态', value: 'all' },
-            { label: '在队', value: 'active' },
-            { label: '离队', value: 'inactive' },
-          ]}
+          options={[{ label: '全部状态', value: 'all' }, { label: '在队', value: 'active' }, { label: '离队', value: 'inactive' }]}
           onChange={setStatusFilter}
           style={{ width: 140 }}
         />
       </Space>
 
-      <Table
-        rowKey="id"
-        loading={loading}
-        columns={columns}
-        dataSource={filteredMembers}
-        pagination={false}
-      />
+      <Table rowKey="id" loading={loading} columns={columns} dataSource={filteredMembers} pagination={false} />
 
-      <Modal
-        title={editingMember ? '编辑成员' : '新增成员'}
-        open={modalOpen}
-        confirmLoading={saving}
-        okText="保存"
-        cancelText="取消"
-        onCancel={closeModal}
-        onOk={() => form.submit()}
-        destroyOnHidden
-      >
-        <Form<MemberFormValues>
-          form={form}
-          layout="vertical"
-          initialValues={{ is_active: true }}
-          onFinish={handleSubmitMember}
-        >
-          <Form.Item
-            label="姓名"
-            name="name"
-            rules={[{ required: true, message: '请输入姓名' }]}
-          >
+      <Modal title={editingMember ? '编辑成员' : '新增成员'} open={modalOpen} confirmLoading={saving} okText="保存" cancelText="取消" onCancel={closeModal} onOk={() => form.submit()} destroyOnHidden>
+        <Form<MemberFormValues> form={form} layout="vertical" initialValues={{ is_active: true }} onFinish={handleSubmitMember}>
+          <Form.Item label="姓名" name="name" rules={[{ required: true, message: '请输入姓名' }]}>
             <Input placeholder="请输入姓名" />
           </Form.Item>
-
-          <Form.Item label="学号" name="student_id">
-            <Input placeholder="请输入学号" />
-          </Form.Item>
-
+          <Form.Item label="学号" name="student_id"><Input placeholder="请输入学号" /></Form.Item>
           <Form.Item label="性别" name="gender">
-            <Select
-              allowClear
-              placeholder="请选择性别"
-              options={[
-                { label: '男', value: '男' },
-                { label: '女', value: '女' },
-              ]}
-            />
+            <Select allowClear placeholder="请选择性别" options={[{ label: '男', value: '男' }, { label: '女', value: '女' }]} />
           </Form.Item>
-
-          <Form.Item label="手机号" name="phone">
-            <Input placeholder="请输入手机号" />
-          </Form.Item>
-
+          <Form.Item label="手机号" name="phone"><Input placeholder="请输入手机号" /></Form.Item>
           <Form.Item label="分组" name="group_id">
-            <Select
-              allowClear
-              placeholder="请选择分组"
-              options={groups.map((group) => ({
-                label: group.name,
-                value: group.id,
-              }))}
-            />
+            <Select allowClear placeholder="请选择分组" options={groups.map((group) => ({ label: group.name, value: group.id }))} />
           </Form.Item>
-
           <Form.Item label="是否在队" name="is_active" valuePropName="checked">
             <Switch checkedChildren="在队" unCheckedChildren="离队" />
           </Form.Item>

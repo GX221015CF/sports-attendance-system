@@ -4,6 +4,8 @@ import {
   Card,
   Col,
   Descriptions,
+  Input,
+  Modal,
   Popconfirm,
   Row,
   Space,
@@ -57,6 +59,7 @@ type RawSessionMember = {
   status: CheckinStatus
   checkin_time: string | null
   late_minutes: number | null
+  remark: string | null
   members: RelatedMember
 }
 
@@ -70,6 +73,8 @@ type DetailMemberRow = {
   status: CheckinStatus
   checkin_time: string | null
   late_minutes: number
+  remark: string | null
+  onEditRemark?: (member: DetailMemberRow) => void
 }
 
 function formatTime(value: string | null) {
@@ -177,6 +182,21 @@ const columns: ColumnsType<DetailMemberRow> = [
     dataIndex: 'late_minutes',
     key: 'late_minutes',
   },
+  {
+    title: '备注',
+    dataIndex: 'remark',
+    key: 'remark',
+    render: (value: string | null) => value || '-',
+  },
+  {
+    title: '操作',
+    key: 'actions',
+    render: (_, record) => (
+      <Button type="link" onClick={() => record.onEditRemark?.(record)}>
+        编辑备注
+      </Button>
+    ),
+  },
 ]
 
 export function SessionDetailPage() {
@@ -188,6 +208,9 @@ export function SessionDetailPage() {
   const [loading, setLoading] = useState(true)
   const [ending, setEnding] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [remarkEditingMember, setRemarkEditingMember] = useState<DetailMemberRow | null>(null)
+  const [remarkText, setRemarkText] = useState('')
+  const [savingRemark, setSavingRemark] = useState(false)
 
   const loadDetail = useCallback(async () => {
     if (!id) {
@@ -209,7 +232,7 @@ export function SessionDetailPage() {
         supabase
           .from('session_members')
           .select(
-            'id, status, checkin_time, late_minutes, members(name, student_id, gender, phone, groups(name))',
+            'id, status, checkin_time, late_minutes, remark, members(name, student_id, gender, phone, groups(name))',
           )
           .eq('session_id', id),
       ])
@@ -239,6 +262,7 @@ export function SessionDetailPage() {
             status: item.status,
             checkin_time: item.checkin_time,
             late_minutes: item.late_minutes ?? 0,
+            remark: item.remark ?? null,
           }
         },
       )
@@ -314,6 +338,46 @@ export function SessionDetailPage() {
     }
   }
 
+
+  function openRemarkModal(member: DetailMemberRow) {
+    setRemarkEditingMember(member)
+    setRemarkText(member.remark ?? '')
+  }
+
+  function closeRemarkModal() {
+    setRemarkEditingMember(null)
+    setRemarkText('')
+  }
+
+  async function handleSaveRemark() {
+    if (!remarkEditingMember) {
+      return
+    }
+
+    try {
+      setSavingRemark(true)
+      const trimmedRemark = remarkText.trim()
+      const { error } = await supabase
+        .from('session_members')
+        .update({ remark: trimmedRemark || null })
+        .eq('id', remarkEditingMember.id)
+
+      if (error) {
+        throw error
+      }
+
+      messageApi.success('备注已更新')
+      closeRemarkModal()
+      await loadDetail()
+    } catch (error) {
+      messageApi.error(
+        error instanceof Error ? error.message : '备注保存失败，请稍后重试。',
+      )
+    } finally {
+      setSavingRemark(false)
+    }
+  }
+
   function handleExportExcel() {
     if (!session || members.length === 0) {
       messageApi.warning('暂无可导出的签到数据')
@@ -336,6 +400,7 @@ export function SessionDetailPage() {
           : '',
         签到结果: getCheckinStatusText(member.status),
         迟到分钟数: member.late_minutes,
+        备注: member.remark ?? '',
       }))
 
       const worksheet = XLSX.utils.json_to_sheet(rows)
@@ -455,12 +520,34 @@ export function SessionDetailPage() {
             className="session-detail-table"
             rowKey="id"
             columns={columns}
-            dataSource={members}
+            dataSource={members.map((member) => ({ ...member, onEditRemark: openRemarkModal }))}
             pagination={false}
             scroll={{ x: 960 }}
           />
         </>
       )}
+
+      <Modal
+        title="编辑备注"
+        open={Boolean(remarkEditingMember)}
+        okText="保存"
+        cancelText="取消"
+        confirmLoading={savingRemark}
+        onCancel={closeRemarkModal}
+        onOk={handleSaveRemark}
+        destroyOnHidden
+      >
+        <Typography.Paragraph type="secondary">
+          备注为自由文本，可填写请假、伤病、迟到原因等说明。
+        </Typography.Paragraph>
+        <Input.TextArea
+          value={remarkText}
+          onChange={(event) => setRemarkText(event.target.value)}
+          placeholder="请输入备注，可留空"
+          autoSize={{ minRows: 4, maxRows: 8 }}
+          allowClear
+        />
+      </Modal>
     </section>
   )
 }

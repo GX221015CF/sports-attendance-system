@@ -97,7 +97,7 @@ class AdminSessionService {
     final rows = await _client
         .from('session_members')
         .select(
-          'id, session_id, member_id, status, checkin_time, late_minutes, '
+          'id, session_id, member_id, status, checkin_time, late_minutes, remark, '
           'created_at, members(name, student_id, gender, phone, groups(name))',
         )
         .eq('session_id', sessionId)
@@ -154,6 +154,17 @@ class AdminSessionService {
         .update({'status': 'closed'})
         .eq('id', sessionId)
         .eq('status', 'active');
+  }
+
+  Future<void> updateSessionMemberRemark({
+    required String sessionMemberId,
+    required String remark,
+  }) async {
+    final trimmedRemark = remark.trim();
+    await _client
+        .from('session_members')
+        .update({'remark': trimmedRemark.isEmpty ? null : trimmedRemark})
+        .eq('id', sessionMemberId);
   }
 }
 

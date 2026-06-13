@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../models/group.dart';
 import '../../models/member.dart';
@@ -129,7 +129,7 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('确认删除该成员？'),
-        content: Text('删除后将无法在成员列表中看到 ${member.name}。'),
+        content: Text('删除后将无法在成员列表中看到 。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -209,7 +209,7 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
     if (_errorMessage != null) {
       return ErrorState(
         title: '成员读取失败',
-        message: '无法读取成员列表，请检查网络连接后重试。',
+        message: '无法读取成员列表，请检查网络连接或 Supabase 配置后重试。',
         retrying: _loading,
         onRetry: _loadData,
       );
@@ -232,7 +232,7 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
               92,
             ),
             children: [
-              const _TopBar(),
+              _TopBar(onRefresh: _loading ? null : _loadData),
               SizedBox(height: compact ? 12 : 18),
               _SummaryHeader(total: _members.length),
               SizedBox(height: compact ? 12 : 16),
@@ -263,7 +263,7 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
                 const EmptyState(
                   icon: Icons.group_off_outlined,
                   title: '暂无成员',
-                  message: '当前筛选条件下没有成员。可以点击右下角新增成员。',
+                  message: '当前筛选条件下没有成员。可以点击右下角新增成员，或点击右上角刷新。',
                 )
               else if (compact)
                 _MemberGrid(
@@ -288,7 +288,9 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar();
+  const _TopBar({required this.onRefresh});
+
+  final VoidCallback? onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -309,6 +311,11 @@ class _TopBar extends StatelessWidget {
                 fontWeight: FontWeight.w900,
               ),
             ),
+          ),
+          IconButton(
+            tooltip: '刷新成员',
+            icon: const Icon(Icons.refresh, color: AppTheme.primary),
+            onPressed: onRefresh,
           ),
         ],
       ),
@@ -366,7 +373,7 @@ class _SummaryHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '当前共 $total 名成员',
+                  '当前共  名成员',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white.withValues(alpha: 0.82),
                     fontWeight: FontWeight.w700,
@@ -573,3 +580,4 @@ class _MemberGrid extends StatelessWidget {
     );
   }
 }
+

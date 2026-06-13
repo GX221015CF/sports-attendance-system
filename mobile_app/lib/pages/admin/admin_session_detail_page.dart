@@ -5,6 +5,7 @@ import '../../models/session_member.dart';
 import '../../services/admin_session_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_formatter.dart';
+import '../../widgets/edit_remark_dialog.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/error_state.dart';
 import '../../widgets/status_tag.dart';
@@ -159,6 +160,42 @@ class _AdminSessionDetailPageState extends State<AdminSessionDetailPage> {
     }
   }
 
+  Future<void> _openRemarkDialog(SessionMember member) async {
+    final changed = await showEditRemarkSheet(
+      context: context,
+      memberName: member.memberName,
+      statusLabel: _statusLabel(member.status),
+      initialRemark: member.remark,
+      onSave: (remark) => _sessionService.updateSessionMemberRemark(
+        sessionMemberId: member.id,
+        remark: remark,
+      ),
+    );
+
+    if (changed != true || !mounted) {
+      return;
+    }
+
+    await _loadDetail();
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('备注已更新')));
+  }
+
+  String _statusLabel(String status) {
+    return switch (status) {
+      'normal' => '正常',
+      'late' => '迟到',
+      'absent' => '缺勤',
+      _ => '未签到',
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(body: SafeArea(child: _buildBody(context)));
@@ -240,9 +277,17 @@ class _AdminSessionDetailPageState extends State<AdminSessionDetailPage> {
                   message: '请调整搜索关键字或状态筛选条件。',
                 )
               else if (compact)
-                _MemberGrid(members: members)
+                _MemberGrid(
+                  members: members,
+                  savingRemark: false,
+                  onEditRemark: _openRemarkDialog,
+                )
               else
-                _MemberList(members: members),
+                _MemberList(
+                  members: members,
+                  savingRemark: false,
+                  onEditRemark: _openRemarkDialog,
+                ),
             ],
           ),
         );
@@ -629,9 +674,15 @@ class _FilterChipItem extends StatelessWidget {
 }
 
 class _MemberList extends StatelessWidget {
-  const _MemberList({required this.members});
+  const _MemberList({
+    required this.members,
+    required this.savingRemark,
+    required this.onEditRemark,
+  });
 
   final List<SessionMember> members;
+  final bool savingRemark;
+  final ValueChanged<SessionMember> onEditRemark;
 
   @override
   Widget build(BuildContext context) {
@@ -640,7 +691,11 @@ class _MemberList extends StatelessWidget {
         for (final member in members)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
-            child: _DetailMemberCard(member: member),
+            child: _DetailMemberCard(
+              member: member,
+              savingRemark: savingRemark,
+              onEditRemark: () => onEditRemark(member),
+            ),
           ),
       ],
     );
@@ -648,9 +703,15 @@ class _MemberList extends StatelessWidget {
 }
 
 class _MemberGrid extends StatelessWidget {
-  const _MemberGrid({required this.members});
+  const _MemberGrid({
+    required this.members,
+    required this.savingRemark,
+    required this.onEditRemark,
+  });
 
   final List<SessionMember> members;
+  final bool savingRemark;
+  final ValueChanged<SessionMember> onEditRemark;
 
   @override
   Widget build(BuildContext context) {
@@ -662,18 +723,27 @@ class _MemberGrid extends StatelessWidget {
         crossAxisCount: 2,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        mainAxisExtent: 132,
+        mainAxisExtent: 220,
       ),
-      itemBuilder: (context, index) =>
-          _DetailMemberCard(member: members[index]),
+      itemBuilder: (context, index) => _DetailMemberCard(
+        member: members[index],
+        savingRemark: savingRemark,
+        onEditRemark: () => onEditRemark(members[index]),
+      ),
     );
   }
 }
 
 class _DetailMemberCard extends StatelessWidget {
-  const _DetailMemberCard({required this.member});
+  const _DetailMemberCard({
+    required this.member,
+    required this.savingRemark,
+    required this.onEditRemark,
+  });
 
   final SessionMember member;
+  final bool savingRemark;
+  final VoidCallback onEditRemark;
 
   @override
   Widget build(BuildContext context) {
@@ -728,6 +798,25 @@ class _DetailMemberCard extends StatelessWidget {
                         ? AppTheme.secondary
                         : AppTheme.textMuted,
                     fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '备注：${member.remark.trim().isEmpty ? '暂无备注' : member.remark}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textMuted,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: savingRemark ? null : onEditRemark,
+                    icon: const Icon(Icons.edit_note_outlined, size: 18),
+                    label: const Text('编辑备注'),
                   ),
                 ),
               ],

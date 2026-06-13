@@ -59,7 +59,7 @@ class AttendanceService {
     final rows = await _client
         .from('session_members')
         .select(
-          'id, session_id, member_id, status, checkin_time, late_minutes, '
+          'id, session_id, member_id, status, checkin_time, late_minutes, remark, '
           'created_at, members(name, student_id, gender, phone, groups(name))',
         )
         .eq('session_id', sessionId)
@@ -69,6 +69,18 @@ class AttendanceService {
     return sortMembersByPinyin(members);
   }
 
+  Future<void> updateSessionMemberRemark({
+    required String sessionMemberId,
+    required String? remark,
+  }) async {
+    final trimmedRemark = remark?.trim() ?? '';
+
+    await _client
+        .from('session_members')
+        .update({'remark': trimmedRemark.isEmpty ? null : trimmedRemark})
+        .eq('id', sessionMemberId);
+  }
+
   Future<void> checkinMember({
     required String sessionMemberId,
     required String status,
@@ -76,7 +88,7 @@ class AttendanceService {
     required int lateMinutes,
   }) async {
     if (status != 'normal' && status != 'late') {
-      throw ArgumentError('Invalid checkin status: $status');
+      throw ArgumentError('无效的签到状态：$status');
     }
 
     final rows = await _client
