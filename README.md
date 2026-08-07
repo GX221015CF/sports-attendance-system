@@ -30,6 +30,38 @@
 - 单次签到 Excel 导出
 - 多次签到合并统计与批量 Excel 导出
 
+## 界面预览
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/admin-dashboard-redacted.png" width="260" alt="管理员数据看板"><br>
+      <sub>管理员数据看板</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/member-management.jpg" width="260" alt="成员管理"><br>
+      <sub>成员管理</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/create-session.jpg" width="260" alt="创建签到"><br>
+      <sub>创建签到</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/current-session.jpg" width="260" alt="今日签到"><br>
+      <sub>今日签到</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/session-member-list.jpg" width="260" alt="成员签到列表"><br>
+      <sub>成员签到列表</sub>
+    </td>
+    <td width="33%"></td>
+  </tr>
+</table>
+
+> 截图中的账号、Supabase 项目标识及成员个人信息均已脱敏。
+
 ## 系统架构
 
 ```mermaid
