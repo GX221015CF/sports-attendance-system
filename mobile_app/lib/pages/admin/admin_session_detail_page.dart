@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../models/admin_session.dart';
@@ -22,6 +24,7 @@ class AdminSessionDetailPage extends StatefulWidget {
 class _AdminSessionDetailPageState extends State<AdminSessionDetailPage> {
   final _sessionService = AdminSessionService();
   final _searchController = TextEditingController();
+  Timer? _searchDebounce;
 
   bool _loading = false;
   bool _closing = false;
@@ -50,8 +53,22 @@ class _AdminSessionDetailPageState extends State<AdminSessionDetailPage> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _updateSearchKeyword(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 180), () {
+      final keyword = value.trim();
+      if (!mounted || _keyword == keyword) {
+        return;
+      }
+      setState(() {
+        _keyword = keyword;
+      });
+    });
   }
 
   Future<void> _loadDetail() async {
@@ -258,11 +275,7 @@ class _AdminSessionDetailPageState extends State<AdminSessionDetailPage> {
                 compact: compact,
                 controller: _searchController,
                 statusFilter: _statusFilter,
-                onSearchChanged: (value) {
-                  setState(() {
-                    _keyword = value.trim();
-                  });
-                },
+                onSearchChanged: _updateSearchKeyword,
                 onStatusChanged: (value) {
                   setState(() {
                     _statusFilter = value;

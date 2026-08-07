@@ -179,7 +179,7 @@ export function CreateSessionPage() {
 
           <div className="create-session-time-grid">
             <Form.Item label="规定签到时间" name="required_time" rules={[{ required: true, message: '请选择规定签到时间' }]}>
-              <DatePicker showTime={{ format: 'HH:mm' }} format="YYYY-MM-DD HH:mm" placeholder="选择规定签到时间" needConfirm style={{ width: '100%' }} />
+              <DatePicker showTime={{ format: 'HH:mm', minuteStep: 1, showNow: false }} format="YYYY-MM-DD HH:mm" placeholder="选择规定签到时间" needConfirm style={{ width: '100%' }} />
             </Form.Item>
             <Form.Item
               label="签到结束时间"
@@ -197,7 +197,7 @@ export function CreateSessionPage() {
               ]}
             >
               <DatePicker
-                showTime={{ format: 'HH:mm' }}
+                showTime={{ format: 'HH:mm', minuteStep: 1, showNow: false }}
                 format="YYYY-MM-DD HH:mm"
                 placeholder="选择签到结束时间"
                 needConfirm

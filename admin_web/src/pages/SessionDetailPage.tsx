@@ -279,6 +279,8 @@ export function SessionDetailPage() {
   }, [id])
 
   useEffect(() => {
+    // Initial data loading intentionally updates the page loading state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDetail()
   }, [loadDetail])
 

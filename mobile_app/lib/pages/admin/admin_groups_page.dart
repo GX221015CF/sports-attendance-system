@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'dart:async';
+
 import '../../models/group.dart';
 import '../../services/admin_group_service.dart';
 import '../../theme/app_theme.dart';
@@ -18,6 +20,7 @@ class AdminGroupsPage extends StatefulWidget {
 class _AdminGroupsPageState extends State<AdminGroupsPage> {
   final _groupService = AdminGroupService();
   final _searchController = TextEditingController();
+  Timer? _searchDebounce;
 
   bool _loading = false;
   String? _errorMessage;
@@ -39,8 +42,22 @@ class _AdminGroupsPageState extends State<AdminGroupsPage> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _updateSearchKeyword(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 180), () {
+      final keyword = value.trim();
+      if (!mounted || _keyword == keyword) {
+        return;
+      }
+      setState(() {
+        _keyword = keyword;
+      });
+    });
   }
 
   Future<void> _loadGroups() async {
@@ -221,11 +238,7 @@ class _AdminGroupsPageState extends State<AdminGroupsPage> {
               SizedBox(height: compact ? 12 : 16),
               TextField(
                 controller: _searchController,
-                onChanged: (value) {
-                  setState(() {
-                    _keyword = value.trim();
-                  });
-                },
+                onChanged: _updateSearchKeyword,
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.search),
                   hintText: '按分组名称搜索',

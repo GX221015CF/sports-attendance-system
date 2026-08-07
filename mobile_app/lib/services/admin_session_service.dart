@@ -13,14 +13,15 @@ class AdminSessionService {
   final SupabaseClient _client;
 
   Future<List<AdminSession>> fetchSessionsWithStats() async {
-    final sessionRows = await _client
-        .from('attendance_sessions')
-        .select('id, title, required_time, end_time, status, created_at')
-        .order('created_at', ascending: false);
-
-    final memberRows = await _client
-        .from('session_members')
-        .select('session_id, status');
+    final results = await Future.wait([
+      _client
+          .from('attendance_sessions')
+          .select('id, title, required_time, end_time, status, created_at')
+          .order('created_at', ascending: false),
+      _client.from('session_members').select('session_id, status'),
+    ]);
+    final sessionRows = results[0];
+    final memberRows = results[1];
 
     final statsBySessionId = <String, _MutableSessionStats>{};
 
@@ -70,20 +71,23 @@ class AdminSessionService {
   }
 
   Future<AdminSession> fetchSessionDetail(String sessionId) async {
-    final sessionRows = await _client
-        .from('attendance_sessions')
-        .select('id, title, required_time, end_time, status, created_at')
-        .eq('id', sessionId)
-        .limit(1);
+    final results = await Future.wait([
+      _client
+          .from('attendance_sessions')
+          .select('id, title, required_time, end_time, status, created_at')
+          .eq('id', sessionId)
+          .limit(1),
+      _client
+          .from('session_members')
+          .select('status')
+          .eq('session_id', sessionId),
+    ]);
+    final sessionRows = results[0];
 
     if (sessionRows.isEmpty) {
       throw StateError('签到任务不存在或已被删除。');
     }
-
-    final memberRows = await _client
-        .from('session_members')
-        .select('status')
-        .eq('session_id', sessionId);
+    final memberRows = results[1];
 
     final stats = _MutableSessionStats();
     for (final row in memberRows) {

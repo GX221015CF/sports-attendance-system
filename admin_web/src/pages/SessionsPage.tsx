@@ -146,6 +146,8 @@ export function SessionsPage() {
   }
 
   useEffect(() => {
+    // Initial data loading intentionally updates the page loading state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSessions()
   }, [])
 
@@ -364,7 +366,7 @@ export function SessionsPage() {
           </Form.Item>
           <Form.Item name="timeRange" label="签到时间" rules={[{ required: true, message: '请选择规定签到时间和结束时间' }]}>
             <RangePicker
-              showTime
+              showTime={{ format: 'HH:mm', minuteStep: 1, showNow: false }}
               format="YYYY-MM-DD HH:mm"
               style={{ width: '100%' }}
               placeholder={['规定签到时间', '签到结束时间']}

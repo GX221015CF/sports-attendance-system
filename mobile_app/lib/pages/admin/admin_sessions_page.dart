@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../models/admin_session.dart';
@@ -19,6 +21,7 @@ class AdminSessionsPage extends StatefulWidget {
 class _AdminSessionsPageState extends State<AdminSessionsPage> {
   final _sessionService = AdminSessionService();
   final _searchController = TextEditingController();
+  Timer? _searchDebounce;
 
   bool _loading = false;
   String? _errorMessage;
@@ -44,8 +47,22 @@ class _AdminSessionsPageState extends State<AdminSessionsPage> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _updateSearchKeyword(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 180), () {
+      final keyword = value.trim();
+      if (!mounted || _keyword == keyword) {
+        return;
+      }
+      setState(() {
+        _keyword = keyword;
+      });
+    });
   }
 
   Future<void> _loadSessions() async {
@@ -105,7 +122,7 @@ class _AdminSessionsPageState extends State<AdminSessionsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _loading ? null : _openCreateSessionPage,
+        onPressed: _openCreateSessionPage,
         backgroundColor: AppTheme.secondary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_task_outlined),
@@ -154,11 +171,7 @@ class _AdminSessionsPageState extends State<AdminSessionsPage> {
                 compact: compact,
                 controller: _searchController,
                 statusFilter: _statusFilter,
-                onSearchChanged: (value) {
-                  setState(() {
-                    _keyword = value.trim();
-                  });
-                },
+                onSearchChanged: _updateSearchKeyword,
                 onStatusChanged: (value) {
                   setState(() {
                     _statusFilter = value;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../models/admin_session.dart';
@@ -8,6 +10,7 @@ import '../../theme/app_theme.dart';
 import '../../utils/date_formatter.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/error_state.dart';
+import '../../widgets/wheel_time_picker.dart';
 
 class AdminCreateSessionPage extends StatefulWidget {
   const AdminCreateSessionPage({super.key});
@@ -20,6 +23,7 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
   final _sessionService = AdminSessionService();
   final _titleController = TextEditingController();
   final _searchController = TextEditingController();
+  Timer? _searchDebounce;
 
   bool _loading = false;
   bool _submitting = false;
@@ -47,14 +51,28 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
   @override
   void initState() {
     super.initState();
+    _titleController.text = formatTrainingSessionTitle(DateTime.now());
     _loadData();
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _titleController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _updateSearchKeyword(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 180), () {
+      if (!mounted || _keyword == value.trim()) {
+        return;
+      }
+      setState(() {
+        _keyword = value.trim();
+      });
+    });
   }
 
   Future<void> _loadData() async {
@@ -124,12 +142,10 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
       return;
     }
 
-    final time = await showTimePicker(
+    final time = await showWheelTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(current ?? now),
-      helpText: requiredTime ? '选择规定签到时间' : '选择签到结束时间',
-      cancelText: '取消',
-      confirmText: '确定',
+      title: requiredTime ? '选择规定签到时间' : '选择签到结束时间',
     );
 
     if (time == null || !mounted) {
@@ -142,28 +158,35 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
       date.day,
       time.hour,
       time.minute,
+      0,
+      0,
     );
 
     if (!requiredTime && !value.isAfter(_requiredTime!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('结束时间必须晚于规定签到时间')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('结束时间必须晚于规定签到时间')));
       return;
     }
 
+    var endTimeAdjusted = false;
     setState(() {
       if (requiredTime) {
         _requiredTime = value;
         if (_endTime == null || !_endTime!.isAfter(value)) {
           _endTime = value.add(const Duration(minutes: 30));
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('结束时间已自动调整为规定时间后 30 分钟')),
-          );
+          endTimeAdjusted = true;
         }
       } else {
         _endTime = value;
       }
     });
+
+    if (endTimeAdjusted && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('结束时间已自动调整为规定时间后 30 分钟')));
+    }
   }
 
   void _selectFilteredMembers() {
@@ -263,10 +286,6 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
   }
 
   Widget _buildBody(BuildContext context) {
-    if (_loading && _members.isEmpty && _errorMessage == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     if (_errorMessage != null) {
       return ErrorState(
         title: '创建数据读取失败',
@@ -293,6 +312,8 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
           children: [
             _TopBar(submitting: _submitting, onSubmit: _submit),
             SizedBox(height: compact ? 12 : 18),
+            if (_loading) const LinearProgressIndicator(),
+            if (_loading) SizedBox(height: compact ? 12 : 16),
             _SessionFormCard(
               titleController: _titleController,
               requiredTime: _requiredTime,
@@ -319,11 +340,7 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
               selectedCount: _selectedMemberIds.length,
               totalCount: _members.length,
               controller: _searchController,
-              onSearchChanged: (value) {
-                setState(() {
-                  _keyword = value.trim();
-                });
-              },
+              onSearchChanged: _updateSearchKeyword,
               onSelectFiltered: _selectFilteredMembers,
               onClear: _clearSelection,
             ),

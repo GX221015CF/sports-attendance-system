@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+
+import 'dart:async';
 
 import '../../models/group.dart';
 import '../../models/member.dart';
@@ -19,6 +21,7 @@ class AdminMembersPage extends StatefulWidget {
 class _AdminMembersPageState extends State<AdminMembersPage> {
   final _memberService = AdminMemberService();
   final _searchController = TextEditingController();
+  Timer? _searchDebounce;
 
   bool _loading = false;
   String? _errorMessage;
@@ -51,8 +54,22 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _updateSearchKeyword(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 180), () {
+      final keyword = value.trim();
+      if (!mounted || _keyword == keyword) {
+        return;
+      }
+      setState(() {
+        _keyword = keyword;
+      });
+    });
   }
 
   Future<void> _loadData() async {
@@ -242,11 +259,7 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
                 controller: _searchController,
                 groupFilter: _groupFilter,
                 statusFilter: _statusFilter,
-                onSearchChanged: (value) {
-                  setState(() {
-                    _keyword = value.trim();
-                  });
-                },
+                onSearchChanged: _updateSearchKeyword,
                 onGroupChanged: (value) {
                   setState(() {
                     _groupFilter = value?.isEmpty == true ? null : value;
@@ -580,4 +593,3 @@ class _MemberGrid extends StatelessWidget {
     );
   }
 }
-

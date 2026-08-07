@@ -1,12 +1,43 @@
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:mobile_app/app.dart';
+import 'package:mobile_app/services/time_service.dart';
 
 void main() {
-  testWidgets('shows app placeholder page', (WidgetTester tester) async {
-    await tester.pumpWidget(const SportsAttendanceApp());
+  final service = TimeService();
+  final requiredTime = DateTime(2026, 8, 7, 18);
+  final endTime = DateTime(2026, 8, 7, 19);
 
-    expect(find.text('运动队签到'), findsWidgets);
-    expect(find.text('Flutter App 基础配置完成'), findsOneWidget);
+  test('required time or earlier is a normal check-in', () {
+    final preview = service.previewCheckin(
+      now: requiredTime,
+      requiredTime: requiredTime,
+      endTime: endTime,
+    );
+
+    expect(preview.canCheckin, isTrue);
+    expect(preview.status, 'normal');
+    expect(preview.lateMinutes, 0);
+  });
+
+  test('after required time is a late check-in', () {
+    final preview = service.previewCheckin(
+      now: requiredTime.add(const Duration(minutes: 12)),
+      requiredTime: requiredTime,
+      endTime: endTime,
+    );
+
+    expect(preview.canCheckin, isTrue);
+    expect(preview.status, 'late');
+    expect(preview.lateMinutes, 12);
+  });
+
+  test('after end time cannot check in', () {
+    final preview = service.previewCheckin(
+      now: endTime.add(const Duration(seconds: 1)),
+      requiredTime: requiredTime,
+      endTime: endTime,
+    );
+
+    expect(preview.canCheckin, isFalse);
+    expect(preview.status, 'closed');
   });
 }
