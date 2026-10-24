@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/group.dart';
 import '../../models/member.dart';
-import '../../theme/app_theme.dart';
+import '../form_surface.dart';
 
 class MemberFormSheet extends StatefulWidget {
   const MemberFormSheet({
@@ -102,193 +102,107 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 18,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        ),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _editing ? '编辑成员' : '新增成员',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppTheme.textStrong,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: _submitting
-                        ? null
-                        : () => Navigator.of(context).pop(false),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              if (_errorMessage != null) ...[
-                _ErrorNotice(message: _errorMessage!),
-                const SizedBox(height: 12),
-              ],
-              TextFormField(
-                controller: _nameController,
-                enabled: !_submitting,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: '姓名',
-                  prefixIcon: Icon(Icons.person_outline),
-                ),
-                validator: (value) {
-                  if ((value ?? '').trim().isEmpty) {
-                    return '请输入姓名';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _studentIdController,
-                enabled: !_submitting,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: '学号',
-                  prefixIcon: Icon(Icons.badge_outlined),
-                ),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _gender,
-                decoration: const InputDecoration(
-                  labelText: '性别',
-                  prefixIcon: Icon(Icons.wc_outlined),
-                ),
-                items: const [
-                  DropdownMenuItem(value: '男', child: Text('男')),
-                  DropdownMenuItem(value: '女', child: Text('女')),
-                ],
-                onChanged: _submitting
-                    ? null
-                    : (value) {
-                        setState(() {
-                          _gender = value;
-                        });
-                      },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _phoneController,
-                enabled: !_submitting,
-                keyboardType: TextInputType.phone,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: '手机号',
-                  prefixIcon: Icon(Icons.phone_outlined),
-                ),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _groupId ?? '',
-                decoration: const InputDecoration(
-                  labelText: '分组',
-                  prefixIcon: Icon(Icons.groups_2_outlined),
-                ),
-                items: [
-                  const DropdownMenuItem(value: '', child: Text('未分组')),
-                  ...widget.groups.map(
-                    (group) => DropdownMenuItem(
-                      value: group.id,
-                      child: Text(group.name),
-                    ),
-                  ),
-                ],
-                onChanged: _submitting
-                    ? null
-                    : (value) {
-                        setState(() {
-                          _groupId = value?.isEmpty == true ? null : value;
-                        });
-                      },
-              ),
-              const SizedBox(height: 12),
-              SwitchListTile(
-                value: _isActive,
-                onChanged: _submitting
-                    ? null
-                    : (value) {
-                        setState(() {
-                          _isActive = value;
-                        });
-                      },
-                title: const Text('是否在队'),
-                subtitle: Text(_isActive ? '在队成员会参与后续签到' : '离队成员默认不参与签到'),
-                contentPadding: EdgeInsets.zero,
-              ),
-              const SizedBox(height: 18),
-              ElevatedButton.icon(
-                onPressed: _submitting ? null : _handleSubmit,
-                icon: _submitting
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.check),
-                label: Text(
-                  _submitting ? '提交中...' : (_editing ? '保存修改' : '新增成员'),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.secondary,
-                  foregroundColor: Colors.white,
-                ),
+  Widget build(BuildContext context) => FormSurface(
+    title: _editing ? '编辑成员' : '新增成员',
+    submitLabel: _editing ? '保存修改' : '新增成员',
+    busy: _submitting,
+    errorMessage: _errorMessage,
+    onSubmit: _handleSubmit,
+    child: Form(
+      key: _formKey,
+      child: ResponsiveFormFields(
+        children: [
+          TextFormField(
+            controller: _nameController,
+            enabled: !_submitting,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              labelText: '姓名',
+              prefixIcon: Icon(Icons.person_outline),
+            ),
+            validator: (value) {
+              if ((value ?? '').trim().isEmpty) {
+                return '请输入姓名';
+              }
+              return null;
+            },
+          ),
+          TextFormField(
+            controller: _studentIdController,
+            enabled: !_submitting,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              labelText: '学号',
+              prefixIcon: Icon(Icons.badge_outlined),
+            ),
+          ),
+          DropdownButtonFormField<String>(
+            isExpanded: true,
+            initialValue: _gender,
+            decoration: const InputDecoration(
+              labelText: '性别',
+              prefixIcon: Icon(Icons.wc_outlined),
+            ),
+            items: const [
+              DropdownMenuItem(value: '男', child: Text('男')),
+              DropdownMenuItem(value: '女', child: Text('女')),
+            ],
+            onChanged: _submitting
+                ? null
+                : (value) {
+                    setState(() {
+                      _gender = value;
+                    });
+                  },
+          ),
+          TextFormField(
+            controller: _phoneController,
+            enabled: !_submitting,
+            keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
+            decoration: const InputDecoration(
+              labelText: '手机号',
+              prefixIcon: Icon(Icons.phone_outlined),
+            ),
+          ),
+          DropdownButtonFormField<String>(
+            isExpanded: true,
+            initialValue: _groupId ?? '',
+            decoration: const InputDecoration(
+              labelText: '分组',
+              prefixIcon: Icon(Icons.groups_2_outlined),
+            ),
+            items: [
+              const DropdownMenuItem(value: '', child: Text('未分组')),
+              ...widget.groups.map(
+                (group) =>
+                    DropdownMenuItem(value: group.id, child: Text(group.name)),
               ),
             ],
+            onChanged: _submitting
+                ? null
+                : (value) {
+                    setState(() {
+                      _groupId = value?.isEmpty == true ? null : value;
+                    });
+                  },
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorNotice extends StatelessWidget {
-  const _ErrorNotice({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.error.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.error.withValues(alpha: 0.18)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.error_outline, color: AppTheme.error),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.error,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+          SwitchListTile(
+            value: _isActive,
+            onChanged: _submitting
+                ? null
+                : (value) {
+                    setState(() {
+                      _isActive = value;
+                    });
+                  },
+            title: const Text('是否在队'),
+            subtitle: Text(_isActive ? '在队成员会参与后续签到' : '离队成员默认不参与签到'),
+            contentPadding: EdgeInsets.zero,
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
 }

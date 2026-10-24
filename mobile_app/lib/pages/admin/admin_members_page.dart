@@ -9,6 +9,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/admin/admin_member_card.dart';
 import '../../widgets/admin/member_form_sheet.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/form_surface.dart';
 import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/error_state.dart';
 
@@ -116,7 +117,9 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
+      constraints: const BoxConstraints(maxWidth: 960),
+      sheetAnimationStyle: formSheetAnimationStyle(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/group.dart';
-import '../../theme/app_theme.dart';
+import '../form_surface.dart';
 
 class GroupFormSheet extends StatefulWidget {
   const GroupFormSheet({super.key, required this.onSubmit, this.group});
@@ -82,127 +82,46 @@ class _GroupFormSheetState extends State<GroupFormSheet> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 18,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        ),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _editing ? '编辑分组' : '新增分组',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppTheme.textStrong,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: _submitting
-                        ? null
-                        : () => Navigator.of(context).pop(false),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              if (_errorMessage != null) ...[
-                _ErrorNotice(message: _errorMessage!),
-                const SizedBox(height: 12),
-              ],
-              TextFormField(
-                controller: _nameController,
-                enabled: !_submitting,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: '分组名称',
-                  prefixIcon: Icon(Icons.category_outlined),
-                ),
-                validator: (value) {
-                  if ((value ?? '').trim().isEmpty) {
-                    return '请输入分组名称';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _descriptionController,
-                enabled: !_submitting,
-                minLines: 3,
-                maxLines: 5,
-                decoration: const InputDecoration(
-                  labelText: '描述',
-                  alignLabelWithHint: true,
-                  prefixIcon: Icon(Icons.notes_outlined),
-                ),
-              ),
-              const SizedBox(height: 18),
-              ElevatedButton.icon(
-                onPressed: _submitting ? null : _handleSubmit,
-                icon: _submitting
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.check),
-                label: Text(
-                  _submitting ? '提交中...' : (_editing ? '保存修改' : '新增分组'),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.secondary,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorNotice extends StatelessWidget {
-  const _ErrorNotice({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.error.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.error.withValues(alpha: 0.18)),
-      ),
-      child: Row(
+  Widget build(BuildContext context) => FormSurface(
+    title: _editing ? '编辑分组' : '新增分组',
+    submitLabel: _editing ? '保存修改' : '新增分组',
+    busy: _submitting,
+    errorMessage: _errorMessage,
+    onSubmit: _handleSubmit,
+    child: Form(
+      key: _formKey,
+      child: ResponsiveFormFields(
         children: [
-          const Icon(Icons.error_outline, color: AppTheme.error),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.error,
-                fontWeight: FontWeight.w800,
-              ),
+          TextFormField(
+            controller: _nameController,
+            enabled: !_submitting,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              labelText: '分组名称',
+              prefixIcon: Icon(Icons.category_outlined),
+            ),
+            validator: (value) {
+              if ((value ?? '').trim().isEmpty) {
+                return '请输入分组名称';
+              }
+              return null;
+            },
+          ),
+          TextFormField(
+            controller: _descriptionController,
+            enabled: !_submitting,
+            keyboardType: TextInputType.multiline,
+            textInputAction: TextInputAction.newline,
+            minLines: 3,
+            maxLines: 5,
+            decoration: const InputDecoration(
+              labelText: '描述',
+              alignLabelWithHint: true,
+              prefixIcon: Icon(Icons.notes_outlined),
             ),
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
 }

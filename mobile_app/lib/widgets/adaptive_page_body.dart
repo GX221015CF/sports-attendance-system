@@ -8,7 +8,7 @@ class AdaptivePageBody extends StatelessWidget {
     required this.toolbar,
     required this.summary,
     required this.slivers,
-    required this.onRefresh,
+    this.onRefresh,
     this.filters,
     this.footer,
     this.bottomPadding = 24,
@@ -18,14 +18,13 @@ class AdaptivePageBody extends StatelessWidget {
   final Widget toolbar;
   final Widget summary;
   final List<Widget> slivers;
-  final Future<void> Function() onRefresh;
+  final Future<void> Function()? onRefresh;
   final Widget? filters;
   final Widget? footer;
   final double bottomPadding;
 
-  Widget _content({bool includeSummary = false}) => RefreshIndicator(
-    onRefresh: onRefresh,
-    child: CustomScrollView(
+  Widget _content({bool includeSummary = false}) {
+    final scrollView = CustomScrollView(
       key: PageStorageKey('$storageKey-content'),
       physics: const AlwaysScrollableScrollPhysics(),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -44,8 +43,11 @@ class AdaptivePageBody extends StatelessWidget {
         ...slivers,
         SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
       ],
-    ),
-  );
+    );
+    return onRefresh == null
+        ? scrollView
+        : RefreshIndicator(onRefresh: onRefresh!, child: scrollView);
+  }
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
