@@ -301,133 +301,208 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
 
   Widget _buildBody(BuildContext context) {
     if (_errorMessage != null) {
-      return ErrorState(
-        title: '创建数据读取失败',
-        message: widget.isOffline
-            ? '本机名单读取失败，请返回在线模式准备名单。'
-            : '无法读取成员和分组，请检查网络连接后重试。',
-        retrying: _loading,
-        onRetry: _loadData,
+      return SingleChildScrollView(
+        child: ErrorState(
+          title: '创建数据读取失败',
+          message: widget.isOffline
+              ? '本机名单读取失败，请返回在线模式准备名单。'
+              : '无法读取成员和分组，请检查网络连接后重试。',
+          retrying: _loading,
+          onRetry: _loadData,
+        ),
       );
     }
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact =
-            constraints.maxWidth > constraints.maxHeight ||
-            constraints.maxWidth >= 720;
-        final filteredMembers = _filteredMembers;
+        // IME animation changes height, not the space available for columns.
+        final wide = constraints.maxWidth >= 1000;
+        final grid = constraints.maxWidth >= 720;
+        final horizontalPadding = wide ? 24.0 : 20.0;
+        final members = _filteredMembers;
 
-        return ListView(
-          padding: EdgeInsets.fromLTRB(
-            compact ? 28 : 20,
-            compact ? 8 : 14,
-            compact ? 28 : 20,
-            24,
-          ),
+        final settings = _SessionFormCard(
+          titleController: _titleController,
+          requiredTime: _requiredTime,
+          endTime: _endTime,
+          onPickRequiredTime: () => _pickDateTime(requiredTime: true),
+          onPickEndTime: () => _pickDateTime(requiredTime: false),
+        );
+        final groups = _GroupSelector(
+          groups: _groups,
+          selectedGroupIds: _selectedGroupIds,
+          onChanged: (groupId, selected) {
+            setState(() {
+              if (selected) {
+                _selectedGroupIds.add(groupId);
+              } else {
+                _selectedGroupIds.remove(groupId);
+              }
+            });
+          },
+        );
+        final picker = _MemberPickerHeader(
+          selectedCount: _selectedMemberIds.length,
+          totalCount: _members.length,
+          controller: _searchController,
+          onSearchChanged: _updateSearchKeyword,
+          onSelectFiltered: _selectFilteredMembers,
+          onClear: _clearSelection,
+        );
+
+        return Column(
           children: [
-            _TopBar(
-              submitting: _submitting,
-              onSubmit: _submit,
-              title: widget.isOffline ? '创建离线签到' : '创建签到',
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: _TopBar(
+                submitting: _submitting,
+                title: widget.isOffline ? '创建离线签到' : '创建签到',
+              ),
             ),
             if (widget.isOffline)
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 6),
                 child: Text('仅在本机发布 · 不自动上传 · 任务结束后手动同步'),
               ),
-            SizedBox(height: compact ? 12 : 18),
             if (_loading) const LinearProgressIndicator(),
-            if (_loading) SizedBox(height: compact ? 12 : 16),
-            _SessionFormCard(
-              titleController: _titleController,
-              requiredTime: _requiredTime,
-              endTime: _endTime,
-              onPickRequiredTime: () => _pickDateTime(requiredTime: true),
-              onPickEndTime: () => _pickDateTime(requiredTime: false),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  8,
+                  horizontalPadding,
+                  8,
+                ),
+                child: wide
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: 336,
+                            child: ListView(
+                              key: const PageStorageKey('session-settings'),
+                              children: [
+                                settings,
+                                const SizedBox(height: 16),
+                                groups,
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                picker,
+                                const SizedBox(height: 12),
+                                Expanded(
+                                  child: CustomScrollView(
+                                    key: const PageStorageKey('wide-roster'),
+                                    keyboardDismissBehavior:
+                                        ScrollViewKeyboardDismissBehavior
+                                            .onDrag,
+                                    slivers: [
+                                      _buildMemberSliver(members, true),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    : CustomScrollView(
+                        key: const PageStorageKey('session-form-and-roster'),
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: Column(
+                              children: [
+                                settings,
+                                const SizedBox(height: 16),
+                                groups,
+                                const SizedBox(height: 16),
+                                picker,
+                                const SizedBox(height: 12),
+                              ],
+                            ),
+                          ),
+                          _buildMemberSliver(members, grid),
+                        ],
+                      ),
+              ),
             ),
-            SizedBox(height: compact ? 12 : 16),
-            _GroupSelector(
-              groups: _groups,
-              selectedGroupIds: _selectedGroupIds,
-              onChanged: (groupId, selected) {
-                setState(() {
-                  if (selected) {
-                    _selectedGroupIds.add(groupId);
-                  } else {
-                    _selectedGroupIds.remove(groupId);
-                  }
-                });
-              },
-            ),
-            SizedBox(height: compact ? 12 : 16),
-            _MemberPickerHeader(
+            _PublishBar(
               selectedCount: _selectedMemberIds.length,
-              totalCount: _members.length,
-              controller: _searchController,
-              onSearchChanged: _updateSearchKeyword,
-              onSelectFiltered: _selectFilteredMembers,
-              onClear: _clearSelection,
-            ),
-            const SizedBox(height: 12),
-            if (_members.isEmpty)
-              const EmptyState(
-                icon: Icons.group_off_outlined,
-                title: '暂无在队成员',
-                message: '请先在成员管理中新增或启用成员。',
-              )
-            else if (filteredMembers.isEmpty)
-              const EmptyState(
-                icon: Icons.search_off,
-                title: '没有匹配成员',
-                message: '请调整搜索关键字或分组筛选条件。',
-              )
-            else if (compact)
-              _MemberGrid(
-                members: filteredMembers,
-                selectedMemberIds: _selectedMemberIds,
-                onChanged: _toggleMember,
-              )
-            else
-              _MemberList(
-                members: filteredMembers,
-                selectedMemberIds: _selectedMemberIds,
-                onChanged: _toggleMember,
-              ),
-            const SizedBox(height: 18),
-            ElevatedButton.icon(
-              onPressed: _submitting ? null : _submit,
-              icon: _submitting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.publish_outlined),
-              label: Text(_submitting ? '发布中...' : '发布签到'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.secondary,
-                foregroundColor: Colors.white,
-              ),
+              submitting: _submitting,
+              enabled: !_loading,
+              onSubmit: _submit,
             ),
           ],
         );
       },
     );
   }
+
+  Widget _buildMemberSliver(List<TeamMember> members, bool grid) {
+    if (_members.isEmpty || members.isEmpty) {
+      return SliverToBoxAdapter(
+        child: _loading
+            ? const Padding(
+                padding: EdgeInsets.all(24),
+                child: Text('正在准备成员名单…'),
+              )
+            : EmptyState(
+                icon: _members.isEmpty
+                    ? Icons.group_off_outlined
+                    : Icons.search_off,
+                title: _members.isEmpty ? '暂无在队成员' : '没有匹配成员',
+                message: _members.isEmpty
+                    ? '请先在成员管理中新增或启用成员。'
+                    : '请调整搜索关键字或分组筛选条件。',
+              ),
+      );
+    }
+
+    Widget memberAt(BuildContext context, int index) {
+      final member = members[index];
+      return _SelectableMemberCard(
+        key: ValueKey(member.id),
+        member: member,
+        selected: _selectedMemberIds.contains(member.id),
+        onChanged: (selected) => _toggleMember(member.id, selected),
+      );
+    }
+
+    if (grid) {
+      return SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          mainAxisExtent: 92,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          memberAt,
+          childCount: members.length,
+        ),
+      );
+    }
+    return SliverList.builder(
+      itemCount: members.length,
+      itemBuilder: (context, index) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: memberAt(context, index),
+      ),
+    );
+  }
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({
-    required this.submitting,
-    required this.onSubmit,
-    required this.title,
-  });
+  const _TopBar({required this.submitting, required this.title});
 
   final String title;
-
   final bool submitting;
-  final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -436,6 +511,7 @@ class _TopBar extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
+            tooltip: '返回',
             icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
             onPressed: submitting ? null : () => Navigator.of(context).pop(),
           ),
@@ -449,12 +525,63 @@ class _TopBar extends StatelessWidget {
               ),
             ),
           ),
-          TextButton.icon(
-            onPressed: submitting ? null : onSubmit,
-            icon: const Icon(Icons.publish_outlined),
-            label: const Text('发布'),
-          ),
         ],
+      ),
+    );
+  }
+}
+
+class _PublishBar extends StatelessWidget {
+  const _PublishBar({
+    required this.selectedCount,
+    required this.submitting,
+    required this.enabled,
+    required this.onSubmit,
+  });
+
+  final int selectedCount;
+  final bool submitting;
+  final bool enabled;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                '已选 $selectedCount 人',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppTheme.textStrong,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton.icon(
+              onPressed: enabled && !submitting ? onSubmit : null,
+              icon: submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.publish_outlined),
+              label: Text(submitting ? '发布中...' : '发布签到'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.secondary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -690,72 +817,9 @@ class _MemberPickerHeader extends StatelessWidget {
   }
 }
 
-class _MemberList extends StatelessWidget {
-  const _MemberList({
-    required this.members,
-    required this.selectedMemberIds,
-    required this.onChanged,
-  });
-
-  final List<TeamMember> members;
-  final Set<String> selectedMemberIds;
-  final void Function(String memberId, bool selected) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (final member in members)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _SelectableMemberCard(
-              member: member,
-              selected: selectedMemberIds.contains(member.id),
-              onChanged: (selected) => onChanged(member.id, selected),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _MemberGrid extends StatelessWidget {
-  const _MemberGrid({
-    required this.members,
-    required this.selectedMemberIds,
-    required this.onChanged,
-  });
-
-  final List<TeamMember> members;
-  final Set<String> selectedMemberIds;
-  final void Function(String memberId, bool selected) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: members.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        mainAxisExtent: 92,
-      ),
-      itemBuilder: (context, index) {
-        final member = members[index];
-        return _SelectableMemberCard(
-          member: member,
-          selected: selectedMemberIds.contains(member.id),
-          onChanged: (selected) => onChanged(member.id, selected),
-        );
-      },
-    );
-  }
-}
-
 class _SelectableMemberCard extends StatelessWidget {
   const _SelectableMemberCard({
+    super.key,
     required this.member,
     required this.selected,
     required this.onChanged,
