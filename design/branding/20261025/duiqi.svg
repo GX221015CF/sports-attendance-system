@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 216 216" role="img" aria-labelledby="title desc">
+  <title id="title">队齐 · 团队与确认</title>
+  <desc id="desc">蓝色满版背景，三枚代表队员的圆点，下方为白色确认笔画。</desc>
+  <rect width="216" height="216" fill="#1E40AF"/>
+  <circle cx="76" cy="77" r="10" fill="#FFFFFF" opacity=".65"/>
+  <circle cx="108" cy="69" r="11" fill="#F97316"/>
+  <circle cx="140" cy="77" r="10" fill="#FFFFFF" opacity=".65"/>
+  <path d="M72 118 99 145 148 104" fill="none" stroke="#FFFFFF" stroke-width="19" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
