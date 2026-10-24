@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'pages/current_session_page.dart';
+import 'pages/mode_home_page.dart';
 import 'theme/app_theme.dart';
 
 class SportsAttendanceApp extends StatelessWidget {
@@ -20,7 +20,7 @@ class SportsAttendanceApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('zh', 'CN'), Locale('en', 'US')],
       theme: AppTheme.lightTheme,
-      home: const CurrentSessionPage(),
+      home: const ModeHomePage(),
     );
   }
 }

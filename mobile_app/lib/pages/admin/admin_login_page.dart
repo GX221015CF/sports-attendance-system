@@ -5,7 +5,9 @@ import '../../theme/app_theme.dart';
 import 'admin_home_page.dart';
 
 class AdminLoginPage extends StatefulWidget {
-  const AdminLoginPage({super.key});
+  const AdminLoginPage({super.key, this.returnAfterLogin = false});
+
+  final bool returnAfterLogin;
 
   @override
   State<AdminLoginPage> createState() => _AdminLoginPageState();
@@ -45,6 +47,11 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
       );
 
       if (!mounted) {
+        return;
+      }
+
+      if (widget.returnAfterLogin) {
+        Navigator.of(context).pop(true);
         return;
       }
 

@@ -8,6 +8,7 @@ build/
 .flutter-plugins-dependencies
 .packages
 android/.gradle/
+supabase/.temp/
 *.apk
 *.aab
 .DS_Store

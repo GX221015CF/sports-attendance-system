@@ -2,7 +2,7 @@
 
 一个面向校队、社团和训练小组的签到考勤系统，包含 Flutter 移动端、React Web 管理后台、Supabase PostgreSQL 数据库脚本，以及配套的产品、运行和测试文档。
 
-当前版本为可运行的 MVP，覆盖成员与分组管理、签到任务创建、现场签到、迟到/缺勤判定、备注、统计和 Excel 导出。
+当前移动端版本为 **1.1.0**，覆盖成员与分组管理、签到任务创建、现场签到、迟到/缺勤判定、备注、统计和 Excel 导出，并增加显式离线签到与结束后手动同步。
 
 ## 功能概览
 
@@ -18,6 +18,11 @@
 - App 内管理成员、分组和签到任务
 - 管理员数据看板和签到详情
 - 竖屏、横屏和大屏布局适配
+- 显式切换在线与离线模式，记住上次选择
+- 联网准备成员名单后，在本机创建、签到、备注和结束离线任务
+- 本机 SQLite 持久化，重启保留记录；结束后手动整单同步，失败可重试
+
+离线模式不会因恢复网络、重启或切回在线而自动上传，也不下载、续签已有云端任务。使用流程、迁移要求和数据边界见 [离线签到说明](docs/OFFLINE_MODE.md)。
 
 ### Web 管理后台
 
@@ -77,7 +82,7 @@ flowchart LR
 
 | 模块 | 技术栈 | 目录 |
 | --- | --- | --- |
-| 移动端 | Flutter、Dart、supabase_flutter、intl、lpinyin | `mobile_app/` |
+| 移动端 | Flutter、Dart、supabase_flutter、sqflite、uuid、intl、lpinyin | `mobile_app/` |
 | Web 后台 | React、Vite、TypeScript、Ant Design、xlsx | `admin_web/` |
 | 数据库 | Supabase PostgreSQL、RLS | `database/` |
 | 产品与运维文档 | Markdown | `docs/` |
@@ -93,7 +98,11 @@ sports-attendance-system/
 │   ├── schema.sql             # 四张核心表、约束和索引
 │   ├── add_session_member_remark.sql
 │   └── dev_rls_policies.sql   # 仅用于开发阶段的宽松 RLS
+├── supabase/
+│   ├── migrations/           # 离线整单同步接口与回执的增量迁移
+│   └── tests/                # 合成数据回滚验证脚本
 ├── docs/
+│   ├── OFFLINE_MODE.md
 │   ├── PRD.md
 │   ├── PROJECT_CONTEXT.md
 │   ├── QA_CHECKLIST.md
@@ -160,6 +169,8 @@ flutter devices
 
 3. 在 Authentication 中创建管理员邮箱密码账号，供 Flutter 管理员端登录。
 4. 确认以下表已创建：`groups`、`members`、`attendance_sessions`、`session_members`。
+
+使用离线任务手动同步时，还需在上述基线之后执行 `supabase/migrations/20261009185846_offline_attendance_sync.sql`；部署和验证步骤见 [离线签到说明](docs/OFFLINE_MODE.md)。该迁移只增加同步接口和私有回执，不替换原核心表与策略。
 
 `database/dev_rls_policies.sql` 会给 `anon` 和 `authenticated` 开发角色开放四张表的读写权限。它只适合本地开发和 MVP 验证，生产部署前必须替换成按管理员身份和业务范围授权的严格策略。
 

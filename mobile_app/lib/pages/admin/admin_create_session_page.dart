@@ -13,14 +13,25 @@ import '../../widgets/error_state.dart';
 import '../../widgets/wheel_time_picker.dart';
 
 class AdminCreateSessionPage extends StatefulWidget {
-  const AdminCreateSessionPage({super.key});
+  const AdminCreateSessionPage({
+    super.key,
+    this.loadGroups,
+    this.loadMembers,
+    this.publish,
+    this.isOffline = false,
+  });
+
+  final Future<List<TeamGroup>> Function()? loadGroups;
+  final Future<List<TeamMember>> Function()? loadMembers;
+  final Future<String> Function(CreateSessionInput)? publish;
+  final bool isOffline;
 
   @override
   State<AdminCreateSessionPage> createState() => _AdminCreateSessionPageState();
 }
 
 class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
-  final _sessionService = AdminSessionService();
+  AdminSessionService get _sessionService => AdminSessionService();
   final _titleController = TextEditingController();
   final _searchController = TextEditingController();
   Timer? _searchDebounce;
@@ -83,8 +94,8 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
 
     try {
       final results = await Future.wait([
-        _sessionService.fetchGroups(),
-        _sessionService.fetchActiveMembers(),
+        widget.loadGroups?.call() ?? _sessionService.fetchGroups(),
+        widget.loadMembers?.call() ?? _sessionService.fetchActiveMembers(),
       ]);
 
       if (!mounted) {
@@ -245,7 +256,8 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
     });
 
     try {
-      await _sessionService.createSession(
+      final publish = widget.publish ?? _sessionService.createSession;
+      await publish(
         CreateSessionInput(
           title: title,
           requiredTime: requiredTime!,
@@ -258,9 +270,11 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('签到任务已发布')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(widget.isOffline ? '离线任务已在本机发布，结束后可手动同步' : '签到任务已发布'),
+        ),
+      );
 
       Navigator.of(context).pop(true);
     } on Object catch (_) {
@@ -289,7 +303,9 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
     if (_errorMessage != null) {
       return ErrorState(
         title: '创建数据读取失败',
-        message: '无法读取成员和分组，请检查网络连接后重试。',
+        message: widget.isOffline
+            ? '本机名单读取失败，请返回在线模式准备名单。'
+            : '无法读取成员和分组，请检查网络连接后重试。',
         retrying: _loading,
         onRetry: _loadData,
       );
@@ -310,7 +326,16 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
             24,
           ),
           children: [
-            _TopBar(submitting: _submitting, onSubmit: _submit),
+            _TopBar(
+              submitting: _submitting,
+              onSubmit: _submit,
+              title: widget.isOffline ? '创建离线签到' : '创建签到',
+            ),
+            if (widget.isOffline)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('仅在本机发布 · 不自动上传 · 任务结束后手动同步'),
+              ),
             SizedBox(height: compact ? 12 : 18),
             if (_loading) const LinearProgressIndicator(),
             if (_loading) SizedBox(height: compact ? 12 : 16),
@@ -393,7 +418,13 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.submitting, required this.onSubmit});
+  const _TopBar({
+    required this.submitting,
+    required this.onSubmit,
+    required this.title,
+  });
+
+  final String title;
 
   final bool submitting;
   final VoidCallback onSubmit;
@@ -411,7 +442,7 @@ class _TopBar extends StatelessWidget {
           const SizedBox(width: 4),
           Expanded(
             child: Text(
-              '创建签到',
+              title,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 color: AppTheme.textStrong,
                 fontWeight: FontWeight.w900,
