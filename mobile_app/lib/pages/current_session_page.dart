@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../branding/app_brand.dart';
 import '../config/supabase_config.dart';
 import '../models/attendance_session.dart';
 import '../services/admin_auth_service.dart';
@@ -275,15 +276,7 @@ class _TopBar extends StatelessWidget {
       height: compact ? 52 : 64,
       child: Row(
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(13),
-            ),
-            child: const Icon(Icons.directions_run, color: AppTheme.primary),
-          ),
+          const BrandMark(size: 38),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'branding/app_brand.dart';
 import 'pages/mode_home_page.dart';
 import 'theme/app_theme.dart';
 
@@ -10,7 +11,7 @@ class SportsAttendanceApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '运动队签到',
+      title: AppBrand.name,
       debugShowCheckedModeBanner: false,
       locale: const Locale('zh', 'CN'),
       localizationsDelegates: const [

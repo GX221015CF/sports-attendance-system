@@ -92,8 +92,17 @@ Redmi 已确认提供 `android.surfaceflinger.frametimeline` 数据源，尚未�
 - 最终 release 构建成功：`mobile_app/build/interaction-previews/forms-feedback-release-arm64.apk`，20624124 字节，SHA256 `da64942e5d8d867244d18b6454e02d71eff94ba09dcf485f46df8d4efa62c802`；x64 模拟器包 `forms-feedback-emulator-debug.apk`，161636319 字节，SHA256 `7441a18c45b1ad00cf77c7f71a64168186b2c0747e4f4a5d66321c2c5a36c77f`。两次构建前后源码指纹一致，元数据为同目录 `forms-feedback-build.json`。
 - AttendanceLab 已用 `install -r` 保数据更新至本轮包，更新前核验 AVD/旧包、三包签名一致、应用标识与新表单代码；安装成功后回读 APK 哈希与产物一致。记录为 `forms-feedback-emulator-verification.json`。没有自动启动或操作界面，没有更新真机，实际键盘手感与动态效果仍待用户验收。
 
+## 队齐品牌接入（2026-10-25）
+
+- 用户在三案比较后明确选择「队齐」，采用 A 图形。桌面名称、Flutter 系统标题、管理员登录品牌区和在线首页标记已统一；页面功能标题继续保留。Android/Dart 包名、版本 1.1.0/code 2、签名配置及签到规则未变。
+- 新增 `lib/branding/app_brand.dart` 与本地 PNG 资源，无新 App 运行时依赖。图形母版 `design/branding/20261025/duiqi.svg` 经 `design/branding/generate_android.py` 生成五密度传统图标、API 26 自适应资源、API 33 单色资源和 Flutter 标记；脚本依赖作者环境已有 PyMuPDF。重复生成字节一致；传统图标尺寸/透明角正确；自适应主体测得最大半径约 28.14 dp，位于 33 dp 安全半径内。规范依据见 [Android 自适应图标](https://developer.android.com/develop/ui/compose/system/icon_design_adaptive)。
+- 四个 Dart 文件格式检查零变化，`flutter analyze` 无问题，现有 111 项 Flutter 测试通过。另生成平板登录、手机登录、800×360/180 高度键盘与首页四张真实 widget 合成预览 `brand-{login-tablet,login-phone,login-keyboard,home}.png`，已目检；预览没有初始化线上服务或使用真实名单。
+- release 产物 `mobile_app/build/interaction-previews/duiqi-release-arm64.apk`，20705769 字节，SHA256 `45f86611f82c5c6804e035888267f85bd5e12630e8f81f5f9d99532252c6f1fa`；模拟器包 `duiqi-emulator-debug.apk`，161636748 字节，SHA256 `bd416abff7cabdf05acbaf7cbd579b74faf448550541bb640c140eb2051025fd`。构建前后源码指纹一致，包内品牌 PNG 与源文件一致，release 的 `libapp.so` 为 arm64；两包标识/版本正确、显示名称为「队齐」，证书与上一已安装包一致。
+- 更新前再次确认 AVD 为 AttendanceLab，现有安装 APK 哈希匹配上阶段包；采用 `adb install -r` 成功更新，安装后哈希与新模拟器包一致。未启动 App、未改真机、未读取或写入真实签到数据。元数据与安装回读为忽略目录中的 `duiqi-build.json`、`brand-resources-validation.json`、`duiqi-emulator-verification.json`。
+- 以上通过的是源码、资源、构建及安装验证；桌面实际外观、登录保留、Android 13+ 主题图标和目标平板端到端由用户后续验收。当前模拟器 API 30 不能验证单色主题图标。
+
 ## 尚未完成
 
 - 目标平板与 release 包的键盘、加载体验确认；如仍有可复现卡顿或等待，再做针对性的帧时间/请求分段测量。
 - 创建、现场签到、首页、离线任务列表、上述管理页和四类表单已完成布局及合成验证；完整真机端到端体验仍待验收。
-- 名称、图标及其余流程反馈的必要收敛；表单反馈已按上述范围统一，研究候选参考 docs/MOBILE_INTERACTION_RESEARCH.md，未整体作为实施清单。
+- 「队齐」名称与图标已接入并保数据更新模拟器，实际桌面与目标平板体验待用户验收；其余流程反馈按实际走查收敛。研究候选参考 docs/MOBILE_INTERACTION_RESEARCH.md，未整体作为实施清单。

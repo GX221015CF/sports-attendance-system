@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../branding/app_brand.dart';
 import '../../services/admin_auth_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/adaptive_page_body.dart';
@@ -177,19 +178,7 @@ class _HeroHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: const Icon(
-              Icons.admin_panel_settings_outlined,
-              color: Colors.white,
-              size: 30,
-            ),
-          ),
+          const BrandMark(),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -197,7 +186,7 @@ class _HeroHeader extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '管理员中心',
+                  AppBrand.name,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
@@ -205,7 +194,7 @@ class _HeroHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '使用管理员邮箱和密码登录',
+                  '${AppBrand.description} · 管理员登录',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white.withValues(alpha: 0.82),
                     fontWeight: FontWeight.w700,

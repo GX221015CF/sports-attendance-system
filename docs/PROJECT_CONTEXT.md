@@ -10,6 +10,7 @@
 - 本地根目录：`C:\Users\GX\Documents\New project 2\sports-attendance-system`。
 - `admin_web/`：React + Vite + TypeScript + Ant Design Web 管理后台。
 - `mobile_app/`：Flutter App，当前主要使用场景为 Android。
+- 移动端品牌：2026-10-25 用户选定「队齐」，功能说明「运动队签到」；图形母版为 `design/branding/20261025/duiqi.svg`，品牌常量与标记组件为 `mobile_app/lib/branding/app_brand.dart`。对用户名称与包名分开管理，保留既有 Android/Dart 标识。
 - `database/`：Supabase PostgreSQL 建表、迁移和开发 RLS 脚本。
 - `docs/`：产品、运行、测试和项目上下文文档。
 - `design/stitch-ui/`：现有 Flutter 界面的设计参考图。
