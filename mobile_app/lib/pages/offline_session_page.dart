@@ -5,6 +5,8 @@ import '../models/session_member.dart';
 import '../services/offline_attendance_service.dart';
 import '../services/time_service.dart';
 import '../widgets/checkin_confirm_dialog.dart';
+import '../widgets/attendance_workspace.dart';
+import '../widgets/error_state.dart';
 import '../widgets/edit_remark_dialog.dart';
 import '../widgets/member_card.dart';
 
@@ -23,6 +25,7 @@ class OfflineSessionPage extends StatefulWidget {
 class _OfflineSessionPageState extends State<OfflineSessionPage> {
   OfflineSession? _session;
   List<SessionMember> _members = [];
+  final _searchController = TextEditingController();
   String _keyword = '';
   String _filter = 'all';
   bool _busy = false;
@@ -32,6 +35,12 @@ class _OfflineSessionPageState extends State<OfflineSessionPage> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _message(String text) {
@@ -101,7 +110,7 @@ class _OfflineSessionPageState extends State<OfflineSessionPage> {
       await showEditRemarkSheet(
         context: context,
         memberName: member.memberName,
-        statusLabel: member.status,
+        statusLabel: attendanceStatusLabels[member.status] ?? '未签到',
         initialRemark: member.remark,
         onSave: (text) =>
             widget.local.saveRemark(widget.sessionId, member.id, text),
@@ -151,9 +160,6 @@ class _OfflineSessionPageState extends State<OfflineSessionPage> {
   @override
   Widget build(BuildContext context) {
     final s = _session;
-    final checked = _members
-        .where((m) => m.status == 'normal' || m.status == 'late')
-        .length;
     final filtered = _members
         .where(
           (m) =>
@@ -164,94 +170,58 @@ class _OfflineSessionPageState extends State<OfflineSessionPage> {
         )
         .toList();
     return Scaffold(
-      appBar: AppBar(title: Text(s?.session.title ?? '本机离线签到')),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(20),
-          children: [
-            const Text('离线签到 · 数据仅保存在本机'),
-            if (s == null && _error == null) const LinearProgressIndicator(),
-            if (_error != null) Text(_error!),
-            if (s != null) ...[
-              Text(s.isClosed ? '任务已结束' : '任务进行中'),
-              if (s.locked) const Text('已进入同步流程，本机快照只读；失败可返回手动重试。'),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
+      body: SafeArea(
+        child: s == null || _error != null
+            ? Column(
                 children: [
-                  Chip(label: Text('参与 ${_members.length}')),
-                  Chip(label: Text('已签 $checked')),
-                  for (final entry in const {
-                    'pending': '未签',
-                    'normal': '正常',
-                    'late': '迟到',
-                    'absent': '缺勤',
-                  }.entries)
-                    Chip(
-                      label: Text(
-                        '${entry.value} ${_members.where((m) => m.status == entry.key).length}',
-                      ),
-                    ),
-                  Chip(
-                    label: Text(
-                      '出勤率 ${_members.isEmpty ? '0' : (checked * 100 / _members.length).toStringAsFixed(1)}%',
-                    ),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: BackButton(),
+                  ),
+                  Expanded(
+                    child: _error != null
+                        ? SingleChildScrollView(
+                            child: ErrorState(
+                              title: '本机任务读取失败',
+                              message: _error!,
+                              retrying: false,
+                              onRetry: _load,
+                            ),
+                          )
+                        : const Center(child: CircularProgressIndicator()),
                   ),
                 ],
-              ),
-              if (!s.isClosed)
-                OutlinedButton(
-                  onPressed: _busy ? null : _end,
-                  child: const Text('结束本机任务'),
+              )
+            : AttendanceWorkspace(
+                session: s.session,
+                members: _members,
+                filteredMembers: filtered,
+                ended: s.isClosed,
+                local: true,
+                notice: s.locked
+                    ? '已进入同步流程，本机快照只读；失败可返回手动重试。'
+                    : '不会自动上传，任务结束后请返回列表手动同步。',
+                endAction: s.isClosed
+                    ? null
+                    : OutlinedButton(
+                        onPressed: _busy ? null : _end,
+                        child: const Text('结束本机任务'),
+                      ),
+                searchController: _searchController,
+                statusFilter: _filter,
+                onSearchChanged: (value) =>
+                    setState(() => _keyword = value.trim()),
+                onStatusChanged: (value) => setState(() => _filter = value),
+                onRefresh: _load,
+                memberBuilder: (member) => MemberCard(
+                  member: member,
+                  checking: _busy,
+                  onCheckin: _busy || s.isClosed || !s.canEdit
+                      ? null
+                      : () => _checkin(member),
+                  onEditRemark: () => _remark(member),
                 ),
-              const SizedBox(height: 10),
-              TextField(
-                decoration: const InputDecoration(
-                  hintText: '搜索姓名或学号',
-                  prefixIcon: Icon(Icons.search),
-                ),
-                onChanged: (v) => setState(() => _keyword = v.trim()),
               ),
-              const SizedBox(height: 8),
-              DropdownButton<String>(
-                value: _filter,
-                isExpanded: true,
-                items:
-                    const {
-                          'all': '全部状态',
-                          'pending': '未签到',
-                          'normal': '正常',
-                          'late': '迟到',
-                          'absent': '缺勤',
-                        }.entries
-                        .map(
-                          (e) => DropdownMenuItem(
-                            value: e.key,
-                            child: Text(e.value),
-                          ),
-                        )
-                        .toList(),
-                onChanged: (v) => setState(() => _filter = v ?? 'all'),
-              ),
-              for (final m in filtered)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: MemberCard(
-                    member: m,
-                    checking: _busy,
-                    onCheckin: _busy || s.isClosed || !s.canEdit
-                        ? null
-                        : () => _checkin(m),
-                    onEditRemark: () => _remark(m),
-                  ),
-                ),
-              if (filtered.isEmpty) const Text('没有匹配成员。'),
-            ],
-          ],
-        ),
       ),
     );
   }

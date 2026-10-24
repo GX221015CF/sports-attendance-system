@@ -54,8 +54,20 @@ Redmi 已确认提供 `android.surfaceflinger.frametimeline` 数据源，尚未�
 - 首次 release 构建等待发生在 Gradle 引擎依赖下载；用本次命令的代理参数切换已有通道后成功，随后 Flutter 标准 release 命令也成功。没有修改全局代理配置，也不把构建下载等待作为 App 加载性能证据。
 - 阶段提交仅包含创建页源码、新增回归测试和本文档，保存在本地 `codex/attendance-ux` 分支；GitHub 默认分支继续保留已上传的离线升级基线。安装包和预览留在被忽略的 build 目录。
 
+## 现场签到页：在线与离线横屏
+
+用户继续要求“推进横屏友好”后，本轮将在线 `SessionMemberListPage` 与离线 `OfflineSessionPage` 接入共用的展示组件 `AttendanceWorkspace`。保留两者各自的服务、签到确认、备注保存及离线结束后手动同步规则，没有修改数据库、网络服务或真实考勤。
+
+- 窗口宽度达到 760 逻辑像素时，左侧显示任务、时间和完整统计并独立滚动，右侧保留搜索与状态筛选、独立滚动名单。窄屏改为单栏，布局不根据键盘压缩后的高度决定列数。
+- 名单改为惰性 sliver 行；右侧空间足够时每行两人，较窄或字体放大时使用单列。卡片采用自然高度，较长备注与字体缩放不再受固定网格高度限制。
+- 签到与备注按钮的高度均为 48 逻辑像素。离线搜索继续支持姓名或学号，筛选统一为可横向滚动的状态选项；离线备注弹层的状态改为中文。
+- 新增 16 项回归，在线/离线分别验证：1180×820 与 800×360 首位成员可直接签到、500 人名单挂载少于 30 张卡片；520 键盘 inset 下宽度与搜索稳定；旋转后保留搜索/筛选并可恢复空结果；1.6 倍字体与长备注；滚动后搜索和任务摘要可见；键盘打开时备注保存；取消签到不发生写入。全部使用合成回调，未初始化线上客户端或操作真实数据。
+- 完整 Flutter 测试共 50 项通过，`flutter analyze --no-pub` 无问题。实际 widget 的中文预览已目检：`mobile_app/build/interaction-previews/signing-tablet-online.png` 与 `signing-tablet-local.png`。
+- 本轮 release 包为 `mobile_app/build/interaction-previews/attendance-landscape-release-arm64.apk`，20624644 字节，SHA256 `1a639c31f441619cd97b3dc9943e23e87fe77e1608621973c78054dd8d2d42c4`；Flutter release 构建成功，签名与原真机包一致。未更新手机，目标平板的实际触感与完整业务验收仍待进行。
+- AttendanceLab 已用 `adb -s emulator-5582 install -r` 保数据更新为本轮 x64 debug 布局预览包；先核验 AVD、原安装包哈希、新旧签名及包名，安装成功后回读 APK 哈希一致。产物为 `mobile_app/build/interaction-previews/attendance-landscape-emulator-debug.apk`，161636319 字节，SHA256 `a586bc5df3cfa2531d6108374565fa3bdaa2ebcee2837d6bb1baf0da69135821`。没有卸载、清数据或自动启动/点击；用户手动打开与走查，模拟器 debug 包不作为真实性能评估依据。
+
 ## 尚未完成
 
 - 目标平板与 release 包的键盘、加载体验确认；如仍有可复现卡顿或等待，再做针对性的帧时间/请求分段测量。
-- 普通现场签到页、离线页和管理页的整体平板横屏方案。
+- 现场签到页已完成上述布局及合成验证；首页、离线任务列表和管理页仍需继续梳理横屏流程，完整真机端到端体验待验收。
 - 名称、图标和统一动效；候选参考 docs/MOBILE_INTERACTION_RESEARCH.md，尚未把研究清单整体作为实现范围。

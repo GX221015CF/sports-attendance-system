@@ -40,10 +40,11 @@ class MemberCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 118),
+      constraints: const BoxConstraints(minHeight: 138),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border(left: BorderSide(color: _accentColor, width: 5)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.032),
@@ -56,7 +57,6 @@ class MemberCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: Row(
           children: [
-            Container(width: 5, color: _accentColor),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
@@ -204,7 +204,7 @@ class _TrailingStatus extends StatelessWidget {
         children: [
           SizedBox(
             width: 84,
-            height: 36,
+            height: 48,
             child: ElevatedButton(
               onPressed: checking ? null : onCheckin,
               style: ElevatedButton.styleFrom(
@@ -260,7 +260,7 @@ class _RemarkButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: 84,
-      height: 30,
+      height: 48,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
