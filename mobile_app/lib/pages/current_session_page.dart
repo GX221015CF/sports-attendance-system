@@ -7,6 +7,7 @@ import '../services/attendance_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_formatter.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/adaptive_page_body.dart';
 import '../widgets/error_state.dart';
 import '../widgets/status_tag.dart';
 import 'admin/admin_home_page.dart';
@@ -14,14 +15,16 @@ import 'admin/admin_login_page.dart';
 import 'session_member_list_page.dart';
 
 class CurrentSessionPage extends StatefulWidget {
-  const CurrentSessionPage({super.key});
+  const CurrentSessionPage({super.key, this.attendanceService});
+  final AttendanceService? attendanceService;
 
   @override
   State<CurrentSessionPage> createState() => _CurrentSessionPageState();
 }
 
 class _CurrentSessionPageState extends State<CurrentSessionPage> {
-  final AttendanceService _attendanceService = AttendanceService();
+  late final AttendanceService _attendanceService =
+      widget.attendanceService ?? AttendanceService();
 
   bool _loading = false;
   bool _autoCloseNotified = false;
@@ -33,7 +36,7 @@ class _CurrentSessionPageState extends State<CurrentSessionPage> {
   void initState() {
     super.initState();
 
-    if (hasSupabaseConfig) {
+    if (hasSupabaseConfig || widget.attendanceService != null) {
       _loadCurrentSession();
     }
   }
@@ -137,153 +140,74 @@ class _CurrentSessionPageState extends State<CurrentSessionPage> {
   }
 
   Widget _buildBody(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isLandscape =
-            constraints.maxWidth > constraints.maxHeight ||
-            constraints.maxWidth >= 720;
-        final padding = isLandscape
-            ? const EdgeInsets.fromLTRB(18, 0, 18, 18)
-            : const EdgeInsets.fromLTRB(22, 0, 22, 24);
-
-        return RefreshIndicator(
-          onRefresh: _loadCurrentSession,
-          child: ListView(
-            padding: padding,
-            children: [
-              _TopBar(compact: isLandscape, onAdminPressed: _openAdminEntry),
-              SizedBox(height: isLandscape ? 8 : 12),
-              _CurrentSessionContent(
-                hasConfig: hasSupabaseConfig,
-                loading: _loading,
-                errorMessage: _errorMessage,
-                session: _session,
-                stats: _stats,
-                compact: isLandscape,
-                onRefresh: _loadCurrentSession,
-                onEnterMembers: _openMemberList,
-                onAdminPressed: _openAdminEntry,
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _CurrentSessionContent extends StatelessWidget {
-  const _CurrentSessionContent({
-    required this.hasConfig,
-    required this.loading,
-    required this.errorMessage,
-    required this.session,
-    required this.stats,
-    required this.compact,
-    required this.onRefresh,
-    required this.onEnterMembers,
-    required this.onAdminPressed,
-  });
-
-  final bool hasConfig;
-  final bool loading;
-  final String? errorMessage;
-  final AttendanceSession? session;
-  final Map<String, int> stats;
-  final bool compact;
-  final VoidCallback onRefresh;
-  final VoidCallback onEnterMembers;
-  final VoidCallback onAdminPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!hasConfig) {
-      return const EmptyState(
-        icon: Icons.settings_outlined,
-        title: '未配置 Supabase',
-        message: '请使用 --dart-define 或 .env 文件传入 Supabase 配置。',
-      );
-    }
-
-    if (loading && session == null && errorMessage == null) {
-      return const Padding(
-        padding: EdgeInsets.only(top: 120),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (errorMessage != null) {
-      return Column(
+    final session = _session;
+    Widget content;
+    if (_loading && session == null && _errorMessage == null) {
+      content = const Center(child: CircularProgressIndicator());
+    } else if (_errorMessage != null) {
+      content = Column(
         children: [
           ErrorState(
             title: '数据加载失败',
             message: '当前签到读取失败，请检查网络连接后重试。',
-            retrying: loading,
-            onRetry: onRefresh,
+            retrying: _loading,
+            onRetry: _loadCurrentSession,
           ),
-          _AdminHintCard(onAdminPressed: onAdminPressed),
+          _AdminHintCard(onAdminPressed: _openAdminEntry),
         ],
       );
-    }
-
-    final activeSession = session;
-    if (activeSession == null) {
-      return Column(
+    } else if (session == null) {
+      content = Column(
         children: [
           EmptyState(
             icon: Icons.event_busy_outlined,
             title: '当前暂无进行中的签到',
-            message: '所有训练或比赛签到都已结束，或管理员尚未创建新的签到。',
-            action: ElevatedButton.icon(
-              onPressed: loading ? null : onRefresh,
-              icon: const Icon(Icons.refresh),
-              label: const Text('刷新'),
+            message: '可刷新查看，或由管理员创建新的签到。',
+            action: OutlinedButton(
+              onPressed: _loading ? null : _loadCurrentSession,
+              child: const Text('刷新'),
             ),
           ),
-          _AdminHintCard(onAdminPressed: onAdminPressed),
+          _AdminHintCard(onAdminPressed: _openAdminEntry),
         ],
       );
-    }
-
-    if (compact) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: _HeroCard(
-              session: activeSession,
-              compact: true,
-              onRefresh: onRefresh,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: _TaskPanel(
-              session: activeSession,
-              stats: stats,
-              loading: loading,
-              compact: true,
-              onRefresh: onRefresh,
-              onEnter: onEnterMembers,
-            ),
-          ),
-        ],
+    } else {
+      content = _TaskPanel(
+        session: session,
+        stats: _stats,
+        loading: _loading,
+        compact: true,
+        showActions: false,
+        onRefresh: _loadCurrentSession,
+        onEnter: _openMemberList,
       );
     }
-
-    return Column(
-      children: [
-        _HeroCard(session: activeSession, compact: false, onRefresh: onRefresh),
-        const SizedBox(height: 14),
-        _TaskPanel(
-          session: activeSession,
-          stats: stats,
-          loading: loading,
-          compact: false,
-          onRefresh: onRefresh,
-          onEnter: onEnterMembers,
-        ),
-      ],
+    return AdaptivePageBody(
+      storageKey: 'current-session',
+      toolbar: _TopBar(compact: true, onAdminPressed: _openAdminEntry),
+      summary: session == null
+          ? const SizedBox.shrink()
+          : _HeroCard(
+              session: session,
+              compact: true,
+              onRefresh: _loadCurrentSession,
+            ),
+      onRefresh: _loadCurrentSession,
+      slivers: [SliverToBoxAdapter(child: content)],
+      footer: session == null
+          ? null
+          : SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _openMemberList,
+                icon: const Icon(Icons.login),
+                label: const Text('进入签到'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.secondary,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
     );
   }
 }
@@ -529,6 +453,7 @@ class _TaskPanel extends StatelessWidget {
     required this.compact,
     required this.onRefresh,
     required this.onEnter,
+    this.showActions = true,
   });
 
   final AttendanceSession session;
@@ -537,6 +462,7 @@ class _TaskPanel extends StatelessWidget {
   final bool compact;
   final VoidCallback onRefresh;
   final VoidCallback onEnter;
+  final bool showActions;
 
   int get total => stats['total'] ?? 0;
   int get checked => stats['checked'] ?? 0;
@@ -603,31 +529,33 @@ class _TaskPanel extends StatelessWidget {
               _StatItem('缺勤', absent, const Color(0xFFB91C1C)),
             ],
           ),
-          SizedBox(height: compact ? 12 : 18),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: loading ? null : onRefresh,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('刷新'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: ElevatedButton.icon(
-                  onPressed: onEnter,
-                  icon: const Icon(Icons.login),
-                  label: const Text('进入签到'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.secondary,
-                    foregroundColor: Colors.white,
+          if (showActions) ...[
+            SizedBox(height: compact ? 12 : 18),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: loading ? null : onRefresh,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('刷新'),
                   ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    onPressed: onEnter,
+                    icon: const Icon(Icons.login),
+                    label: const Text('进入签到'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.secondary,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

@@ -7,6 +7,7 @@ import '../services/admin_session_service.dart';
 import '../services/offline_attendance_service.dart';
 import '../services/offline_sync_service.dart';
 import '../utils/date_formatter.dart';
+import '../widgets/adaptive_page_body.dart';
 import 'admin/admin_create_session_page.dart';
 import 'admin/admin_login_page.dart';
 import 'offline_session_page.dart';
@@ -224,6 +225,61 @@ class _OfflineHomePageState extends State<OfflineHomePage> {
     _ => s.isClosed ? '已结束 · 待手动同步' : '进行中 · 仅保存在本机',
   };
 
+  Widget _sessionCard(OfflineSession s, bool busy) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              s.session.title,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            Text('规定：${formatDateTime(s.session.requiredTime)}'),
+            Text('结束：${formatDateTime(s.session.endTime)}'),
+            Text(
+              _syncLabel(s),
+              style: const TextStyle(
+                color: Colors.deepOrange,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (s.lastError != null) Text(s.lastError!),
+            Wrap(
+              spacing: 8,
+              children: [
+                TextButton(
+                  onPressed: busy
+                      ? null
+                      : () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => OfflineSessionPage(
+                                local: widget.local,
+                                sessionId: s.session.id,
+                              ),
+                            ),
+                          );
+                          if (mounted) await _load();
+                        },
+                  child: Text(s.isClosed ? '查看结果与备注' : '进入签到'),
+                ),
+                if (s.canSync)
+                  FilledButton.icon(
+                    onPressed: busy ? null : () => _upload(s),
+                    icon: const Icon(Icons.cloud_upload_outlined),
+                    label: Text(_syncingId == s.session.id ? '同步中…' : '手动同步'),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final busy = _preparing || _syncingId != null;
@@ -237,118 +293,77 @@ class _OfflineHomePageState extends State<OfflineHomePage> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(20),
-          children: [
-            const Text(
-              '仅操作本机新建任务 · 不自动同步',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            const Text('联网、切换模式和重启都不会上传。进行中的任务不能同步。'),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _roster == null
-                          ? '尚未准备离线名单'
-                          : '已保存 ${_roster!.members.length} 名成员 · '
-                                '${formatDateTime(_roster!.savedAt)}',
-                    ),
-                    const Text('名单只读；手机系统时间用于离线签到，请保持正确。'),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: busy ? null : _prepareRoster,
-                          icon: const Icon(Icons.download_outlined),
-                          label: Text(_preparing ? '准备中…' : '联网准备名单'),
-                        ),
-                        FilledButton.icon(
-                          onPressed: busy || _loading ? null : _create,
-                          icon: const Icon(Icons.add),
-                          label: const Text('创建离线签到'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+      body: SafeArea(
+        child: AdaptivePageBody(
+          storageKey: 'offline-home',
+          toolbar: const SizedBox.shrink(),
+          onRefresh: _load,
+          summary: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                '仅操作本机新建任务 · 不自动同步',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
-            ),
-            const SizedBox(height: 18),
-            if (_loading) const LinearProgressIndicator(),
-            if (_error != null) Text(_error!),
-            if (!_loading && _sessions.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('暂无本机离线任务。准备名单后即可创建并发布。'),
-              ),
-            for (final s in _sessions)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          s.session.title,
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        Text('规定：${formatDateTime(s.session.requiredTime)}'),
-                        Text('结束：${formatDateTime(s.session.endTime)}'),
-                        Text(
-                          _syncLabel(s),
-                          style: const TextStyle(
-                            color: Colors.deepOrange,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        if (s.lastError != null) Text(s.lastError!),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            TextButton(
-                              onPressed: busy
-                                  ? null
-                                  : () async {
-                                      await Navigator.of(context).push(
-                                        MaterialPageRoute<void>(
-                                          builder: (_) => OfflineSessionPage(
-                                            local: widget.local,
-                                            sessionId: s.session.id,
-                                          ),
-                                        ),
-                                      );
-                                      if (mounted) await _load();
-                                    },
-                              child: Text(s.isClosed ? '查看结果与备注' : '进入签到'),
-                            ),
-                            if (s.canSync)
-                              FilledButton.icon(
-                                onPressed: busy ? null : () => _upload(s),
-                                icon: const Icon(Icons.cloud_upload_outlined),
-                                label: Text(
-                                  _syncingId == s.session.id ? '同步中…' : '手动同步',
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
+              const SizedBox(height: 8),
+              const Text('联网、切换模式和重启都不会上传。进行中的任务不能同步。'),
+              const SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        _roster == null
+                            ? '尚未准备离线名单'
+                            : '已保存 ${_roster!.members.length} 名成员 · ${formatDateTime(_roster!.savedAt)}',
+                      ),
+                      const SizedBox(height: 8),
+                      const Text('名单只读；手机系统时间用于离线签到，请保持正确。'),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: busy ? null : _prepareRoster,
+                        icon: const Icon(Icons.download_outlined),
+                        label: Text(_preparing ? '准备中…' : '联网准备名单'),
+                      ),
+                      const SizedBox(height: 8),
+                      FilledButton.icon(
+                        onPressed: busy || _loading ? null : _create,
+                        icon: const Icon(Icons.add),
+                        label: const Text('创建离线签到'),
+                      ),
+                    ],
                   ),
                 ),
               ),
+            ],
+          ),
+          slivers: [
+            if (_loading)
+              const SliverToBoxAdapter(child: LinearProgressIndicator()),
+            if (_error != null) SliverToBoxAdapter(child: Text(_error!)),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  '本机任务 · ${_sessions.length}',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+            ),
+            if (!_loading && _sessions.isEmpty)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('暂无本机离线任务。准备名单后即可创建并发布。'),
+                ),
+              ),
+            ResponsiveSliverCards(
+              itemCount: _sessions.length,
+              itemBuilder: (context, index) =>
+                  _sessionCard(_sessions[index], busy),
+            ),
           ],
         ),
       ),

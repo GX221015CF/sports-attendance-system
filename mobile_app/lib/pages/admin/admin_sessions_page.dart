@@ -7,19 +7,21 @@ import '../../services/admin_session_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_formatter.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/error_state.dart';
 import 'admin_create_session_page.dart';
 import 'admin_session_detail_page.dart';
 
 class AdminSessionsPage extends StatefulWidget {
-  const AdminSessionsPage({super.key});
+  const AdminSessionsPage({super.key, this.sessionService});
+  final AdminSessionService? sessionService;
 
   @override
   State<AdminSessionsPage> createState() => _AdminSessionsPageState();
 }
 
 class _AdminSessionsPageState extends State<AdminSessionsPage> {
-  final _sessionService = AdminSessionService();
+  late final _sessionService = widget.sessionService ?? AdminSessionService();
   final _searchController = TextEditingController();
   Timer? _searchDebounce;
 
@@ -146,59 +148,40 @@ class _AdminSessionsPageState extends State<AdminSessionsPage> {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact =
-            constraints.maxWidth > constraints.maxHeight ||
-            constraints.maxWidth >= 720;
-        final sessions = _filteredSessions;
-
-        return RefreshIndicator(
-          onRefresh: _loadSessions,
-          child: ListView(
-            padding: EdgeInsets.fromLTRB(
-              compact ? 28 : 20,
-              compact ? 8 : 14,
-              compact ? 28 : 20,
-              92,
+    final sessions = _filteredSessions;
+    return AdaptivePageBody(
+      storageKey: 'admin-sessions',
+      toolbar: _TopBar(onCreate: _openCreateSessionPage),
+      summary: _SummaryHeader(total: _sessions.length),
+      filters: LayoutBuilder(
+        builder: (context, constraints) => _Filters(
+          compact: constraints.maxWidth >= 720,
+          controller: _searchController,
+          statusFilter: _statusFilter,
+          onSearchChanged: _updateSearchKeyword,
+          onStatusChanged: (value) => setState(() => _statusFilter = value),
+        ),
+      ),
+      onRefresh: _loadSessions,
+      bottomPadding: 92,
+      slivers: [
+        if (sessions.isEmpty)
+          const SliverToBoxAdapter(
+            child: EmptyState(
+              icon: Icons.event_note_outlined,
+              title: '暂无签到任务',
+              message: '请调整筛选，或点击创建签到。',
             ),
-            children: [
-              _TopBar(onCreate: _openCreateSessionPage),
-              SizedBox(height: compact ? 12 : 18),
-              _SummaryHeader(total: _sessions.length),
-              SizedBox(height: compact ? 12 : 16),
-              _Filters(
-                compact: compact,
-                controller: _searchController,
-                statusFilter: _statusFilter,
-                onSearchChanged: _updateSearchKeyword,
-                onStatusChanged: (value) {
-                  setState(() {
-                    _statusFilter = value;
-                  });
-                },
-              ),
-              SizedBox(height: compact ? 12 : 16),
-              if (sessions.isEmpty)
-                const EmptyState(
-                  icon: Icons.event_note_outlined,
-                  title: '暂无签到任务',
-                  message: '点击右下角创建签到，发布新的训练签到任务。',
-                )
-              else if (compact)
-                _SessionGrid(
-                  sessions: sessions,
-                  onOpenDetail: _openSessionDetail,
-                )
-              else
-                _SessionList(
-                  sessions: sessions,
-                  onOpenDetail: _openSessionDetail,
-                ),
-            ],
+          )
+        else
+          ResponsiveSliverCards(
+            itemCount: sessions.length,
+            itemBuilder: (context, index) => _SessionCard(
+              session: sessions[index],
+              onOpenDetail: () => _openSessionDetail(sessions[index]),
+            ),
           ),
-        );
-      },
+      ],
     );
   }
 }
@@ -398,58 +381,6 @@ class _FilterChipItem extends StatelessWidget {
         selected: selected,
         onSelected: (_) => onSelected(value),
       ),
-    );
-  }
-}
-
-class _SessionList extends StatelessWidget {
-  const _SessionList({required this.sessions, required this.onOpenDetail});
-
-  final List<AdminSession> sessions;
-  final ValueChanged<AdminSession> onOpenDetail;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (final session in sessions)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _SessionCard(
-              session: session,
-              onOpenDetail: () => onOpenDetail(session),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _SessionGrid extends StatelessWidget {
-  const _SessionGrid({required this.sessions, required this.onOpenDetail});
-
-  final List<AdminSession> sessions;
-  final ValueChanged<AdminSession> onOpenDetail;
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: sessions.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        mainAxisExtent: 254,
-      ),
-      itemBuilder: (context, index) {
-        final session = sessions[index];
-        return _SessionCard(
-          session: session,
-          onOpenDetail: () => onOpenDetail(session),
-        );
-      },
     );
   }
 }

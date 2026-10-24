@@ -9,17 +9,19 @@ import '../../theme/app_theme.dart';
 import '../../widgets/admin/admin_member_card.dart';
 import '../../widgets/admin/member_form_sheet.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/error_state.dart';
 
 class AdminMembersPage extends StatefulWidget {
-  const AdminMembersPage({super.key});
+  const AdminMembersPage({super.key, this.memberService});
+  final AdminMemberService? memberService;
 
   @override
   State<AdminMembersPage> createState() => _AdminMembersPageState();
 }
 
 class _AdminMembersPageState extends State<AdminMembersPage> {
-  final _memberService = AdminMemberService();
+  late final _memberService = widget.memberService ?? AdminMemberService();
   final _searchController = TextEditingController();
   Timer? _searchDebounce;
 
@@ -232,70 +234,51 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact =
-            constraints.maxWidth > constraints.maxHeight ||
-            constraints.maxWidth >= 720;
-        final filteredMembers = _filteredMembers;
-
-        return RefreshIndicator(
-          onRefresh: _loadData,
-          child: ListView(
-            padding: EdgeInsets.fromLTRB(
-              compact ? 28 : 20,
-              compact ? 8 : 14,
-              compact ? 28 : 20,
-              92,
-            ),
-            children: [
-              _TopBar(onRefresh: _loading ? null : _loadData),
-              SizedBox(height: compact ? 12 : 18),
-              _SummaryHeader(total: _members.length),
-              SizedBox(height: compact ? 12 : 16),
-              _Filters(
-                compact: compact,
-                groups: _groups,
-                controller: _searchController,
-                groupFilter: _groupFilter,
-                statusFilter: _statusFilter,
-                onSearchChanged: _updateSearchKeyword,
-                onGroupChanged: (value) {
-                  setState(() {
-                    _groupFilter = value?.isEmpty == true ? null : value;
-                  });
-                },
-                onStatusChanged: (value) {
-                  setState(() {
-                    _statusFilter = value;
-                  });
-                },
-              ),
-              SizedBox(height: compact ? 12 : 16),
-              if (filteredMembers.isEmpty)
-                const EmptyState(
-                  icon: Icons.group_off_outlined,
-                  title: '暂无成员',
-                  message: '当前筛选条件下没有成员。可以点击右下角新增成员，或点击右上角刷新。',
-                )
-              else if (compact)
-                _MemberGrid(
-                  members: filteredMembers,
-                  deletingMemberId: _deletingMemberId,
-                  onEdit: _openMemberForm,
-                  onDelete: _confirmDelete,
-                )
-              else
-                _MemberList(
-                  members: filteredMembers,
-                  deletingMemberId: _deletingMemberId,
-                  onEdit: _openMemberForm,
-                  onDelete: _confirmDelete,
-                ),
-            ],
+    final members = _filteredMembers;
+    return AdaptivePageBody(
+      storageKey: 'admin-members',
+      toolbar: _TopBar(onRefresh: _loading ? null : _loadData),
+      summary: _SummaryHeader(total: _members.length),
+      filters: LayoutBuilder(
+        builder: (context, constraints) => _Filters(
+          compact: constraints.maxWidth >= 720,
+          groups: _groups,
+          controller: _searchController,
+          groupFilter: _groupFilter,
+          statusFilter: _statusFilter,
+          onSearchChanged: _updateSearchKeyword,
+          onGroupChanged: (value) => setState(
+            () => _groupFilter = value?.isEmpty == true ? null : value,
           ),
-        );
-      },
+          onStatusChanged: (value) => setState(() => _statusFilter = value),
+        ),
+      ),
+      onRefresh: _loadData,
+      bottomPadding: 92,
+      slivers: [
+        if (members.isEmpty)
+          const SliverToBoxAdapter(
+            child: EmptyState(
+              icon: Icons.group_off_outlined,
+              title: '暂无成员',
+              message: '请调整筛选，或点击新增成员。',
+            ),
+          )
+        else
+          ResponsiveSliverCards(
+            itemCount: members.length,
+            itemBuilder: (context, index) {
+              final member = members[index];
+              return AdminMemberCard(
+                key: ValueKey(member.id),
+                member: member,
+                deleting: _deletingMemberId == member.id,
+                onEdit: () => _openMemberForm(member),
+                onDelete: () => _confirmDelete(member),
+              );
+            },
+          ),
+      ],
     );
   }
 }
@@ -386,7 +369,7 @@ class _SummaryHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '当前共  名成员',
+                  '当前共 $total 名成员',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white.withValues(alpha: 0.82),
                     fontWeight: FontWeight.w700,
@@ -434,6 +417,7 @@ class _Filters extends StatelessWidget {
     );
 
     final groupSelect = DropdownButtonFormField<String>(
+      isExpanded: true,
       initialValue: groupFilter ?? '',
       decoration: const InputDecoration(
         prefixIcon: Icon(Icons.groups_2_outlined),
@@ -520,76 +504,6 @@ class _FilterChipItem extends StatelessWidget {
         selected: selected,
         onSelected: (_) => onSelected(value),
       ),
-    );
-  }
-}
-
-class _MemberList extends StatelessWidget {
-  const _MemberList({
-    required this.members,
-    required this.deletingMemberId,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final List<TeamMember> members;
-  final String? deletingMemberId;
-  final ValueChanged<TeamMember> onEdit;
-  final ValueChanged<TeamMember> onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (final member in members)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: AdminMemberCard(
-              member: member,
-              deleting: deletingMemberId == member.id,
-              onEdit: () => onEdit(member),
-              onDelete: () => onDelete(member),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _MemberGrid extends StatelessWidget {
-  const _MemberGrid({
-    required this.members,
-    required this.deletingMemberId,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final List<TeamMember> members;
-  final String? deletingMemberId;
-  final ValueChanged<TeamMember> onEdit;
-  final ValueChanged<TeamMember> onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: members.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        mainAxisExtent: 210,
-      ),
-      itemBuilder: (context, index) {
-        final member = members[index];
-        return AdminMemberCard(
-          member: member,
-          deleting: deletingMemberId == member.id,
-          onEdit: () => onEdit(member),
-          onDelete: () => onDelete(member),
-        );
-      },
     );
   }
 }

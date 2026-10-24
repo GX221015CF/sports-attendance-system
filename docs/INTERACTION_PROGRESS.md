@@ -66,8 +66,20 @@ Redmi 已确认提供 `android.surfaceflinger.frametimeline` 数据源，尚未�
 - 本轮 release 包为 `mobile_app/build/interaction-previews/attendance-landscape-release-arm64.apk`，20624644 字节，SHA256 `1a639c31f441619cd97b3dc9943e23e87fe77e1608621973c78054dd8d2d42c4`；Flutter release 构建成功，签名与原真机包一致。未更新手机，目标平板的实际触感与完整业务验收仍待进行。
 - AttendanceLab 已用 `adb -s emulator-5582 install -r` 保数据更新为本轮 x64 debug 布局预览包；先核验 AVD、原安装包哈希、新旧签名及包名，安装成功后回读 APK 哈希一致。产物为 `mobile_app/build/interaction-previews/attendance-landscape-emulator-debug.apk`，161636319 字节，SHA256 `a586bc5df3cfa2531d6108374565fa3bdaa2ebcee2837d6bb1baf0da69135821`。没有卸载、清数据或自动启动/点击；用户手动打开与走查，模拟器 debug 包不作为真实性能评估依据。
 
+## 首页与管理页：横屏衔接和看板精简
+
+用户明确要求继续首页、管理页横屏优化，并删除数据看板“待签到人数”与“迟到人数”。本轮只修改 Flutter 的七个页面、共用布局、新增回归与本报告；Web、数据库和各服务的查询/写入规则保持现有实现。
+
+- 数据看板已移除上述两张卡片，保留成员总数、分组数量、进行中签到和已结束签到，重新排为四项统计。签到列表、详情与真实记录中的 pending/late 状态保留；本轮没有删除数据或修改状态契约。
+- 在线首页将任务摘要与统计分栏，固定底部“进入签到”；管理员首页固定“创建签到”，常用功能在统计读取失败时也可访问。看板不再展示底层服务的项目连接标识。
+- 离线首页将名单准备区和本机任务列表分栏；成员、分组、任务列表与签到详情统一为摘要区、筛选区、惰性列表，保留现有新增/编辑/删除/结束/同步确认。卡片采用自然高度，根据宽度与字体大小分列，键盘高度不改变列数。
+- 新增 27 项回归：七页各覆盖 1180×820、800×360、1.6 倍字体；四个管理工作页覆盖键盘 inset 520 与旋转后搜索保留；另验证长名单滚动后筛选可见及搜索恢复、统计失败时管理入口可达。500 条合成成员/分组/任务/详情仅挂载视口附近卡片；离线进行中任务不出现同步入口。
+- 完整 77 项 Flutter 测试通过，静态分析无问题，格式与补丁检查通过。七张实际 widget 中文预览 `mobile_app/build/interaction-previews/home-admin-{online,offline,dashboard,members,groups,sessions,detail}.png` 已逐张目检；合成数据与服务替身没有初始化线上客户端、读取真实账户或写入真实考勤。
+- release 构建成功：`mobile_app/build/interaction-previews/home-admin-release-arm64.apk`，20624056 字节，SHA256 `eb97c47e98bdec2626976a814c18d1cf5087a95c330626f52cce018d6c460ff1`。模拟器 debug 构建成功：`home-admin-emulator-debug.apk`，161636319 字节，SHA256 `e14c14cd28883379f4af2c76a10271ddbbed2e3c19d1d7fa7aa4fe12cc0678d2`。包内 kernel 已核验包含新布局类，且不再包含被移除的看板标签；目标平板端到端仍待用户验收。
+- AttendanceLab 已完成本轮 `install -r` 就地更新：核验设备、更新前版本哈希、两包签名与应用标识，安装成功后实际 APK 哈希一致。验证记录为 `mobile_app/build/interaction-previews/home-admin-emulator-verification.json`。未自动启动或点击 App，真机未更新，由用户手动确认界面及登录状态。
+
 ## 尚未完成
 
 - 目标平板与 release 包的键盘、加载体验确认；如仍有可复现卡顿或等待，再做针对性的帧时间/请求分段测量。
-- 现场签到页已完成上述布局及合成验证；首页、离线任务列表和管理页仍需继续梳理横屏流程，完整真机端到端体验待验收。
+- 创建、现场签到、首页、离线任务列表及上述管理工作页已完成横屏布局及合成验证；登录和编辑表单细节、完整真机端到端体验仍待进一步验收。
 - 名称、图标和统一动效；候选参考 docs/MOBILE_INTERACTION_RESEARCH.md，尚未把研究清单整体作为实现范围。

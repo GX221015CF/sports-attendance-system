@@ -9,11 +9,17 @@ import '../../theme/app_theme.dart';
 import '../../utils/date_formatter.dart';
 import '../../widgets/edit_remark_dialog.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/error_state.dart';
 import '../../widgets/status_tag.dart';
 
 class AdminSessionDetailPage extends StatefulWidget {
-  const AdminSessionDetailPage({super.key, required this.sessionId});
+  const AdminSessionDetailPage({
+    super.key,
+    required this.sessionId,
+    this.sessionService,
+  });
+  final AdminSessionService? sessionService;
 
   final String sessionId;
 
@@ -22,7 +28,7 @@ class AdminSessionDetailPage extends StatefulWidget {
 }
 
 class _AdminSessionDetailPageState extends State<AdminSessionDetailPage> {
-  final _sessionService = AdminSessionService();
+  late final _sessionService = widget.sessionService ?? AdminSessionService();
   final _searchController = TextEditingController();
   Timer? _searchDebounce;
 
@@ -241,70 +247,53 @@ class _AdminSessionDetailPageState extends State<AdminSessionDetailPage> {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact =
-            constraints.maxWidth > constraints.maxHeight ||
-            constraints.maxWidth >= 720;
-        final members = _filteredMembers;
-
-        return RefreshIndicator(
-          onRefresh: _loadDetail,
-          child: ListView(
-            padding: EdgeInsets.fromLTRB(
-              compact ? 28 : 20,
-              compact ? 8 : 14,
-              compact ? 28 : 20,
-              24,
+    final members = _filteredMembers;
+    return AdaptivePageBody(
+      storageKey: 'admin-detail',
+      toolbar: _TopBar(),
+      summary: Column(
+        children: [
+          _SessionHeader(session: session),
+          const SizedBox(height: 12),
+          _StatsPanel(stats: session.stats),
+          if (session.status == 'active') ...[
+            const SizedBox(height: 12),
+            _CloseSessionButton(
+              closing: _closing,
+              onClose: _confirmCloseSession,
             ),
-            children: [
-              _TopBar(),
-              SizedBox(height: compact ? 12 : 18),
-              _SessionHeader(session: session),
-              SizedBox(height: compact ? 12 : 16),
-              _StatsPanel(stats: session.stats),
-              if (session.status == 'active') ...[
-                const SizedBox(height: 12),
-                _CloseSessionButton(
-                  closing: _closing,
-                  onClose: _confirmCloseSession,
-                ),
-              ],
-              SizedBox(height: compact ? 12 : 16),
-              _Filters(
-                compact: compact,
-                controller: _searchController,
-                statusFilter: _statusFilter,
-                onSearchChanged: _updateSearchKeyword,
-                onStatusChanged: (value) {
-                  setState(() {
-                    _statusFilter = value;
-                  });
-                },
-              ),
-              SizedBox(height: compact ? 12 : 16),
-              if (members.isEmpty)
-                const EmptyState(
-                  icon: Icons.search_off,
-                  title: '没有匹配成员',
-                  message: '请调整搜索关键字或状态筛选条件。',
-                )
-              else if (compact)
-                _MemberGrid(
-                  members: members,
-                  savingRemark: false,
-                  onEditRemark: _openRemarkDialog,
-                )
-              else
-                _MemberList(
-                  members: members,
-                  savingRemark: false,
-                  onEditRemark: _openRemarkDialog,
-                ),
-            ],
+          ],
+        ],
+      ),
+      filters: LayoutBuilder(
+        builder: (context, constraints) => _Filters(
+          compact: constraints.maxWidth >= 720,
+          controller: _searchController,
+          statusFilter: _statusFilter,
+          onSearchChanged: _updateSearchKeyword,
+          onStatusChanged: (value) => setState(() => _statusFilter = value),
+        ),
+      ),
+      onRefresh: _loadDetail,
+      slivers: [
+        if (members.isEmpty)
+          const SliverToBoxAdapter(
+            child: EmptyState(
+              icon: Icons.search_off,
+              title: '没有匹配成员',
+              message: '请调整搜索关键字或状态筛选条件。',
+            ),
+          )
+        else
+          ResponsiveSliverCards(
+            itemCount: members.length,
+            itemBuilder: (context, index) => _DetailMemberCard(
+              member: members[index],
+              savingRemark: false,
+              onEditRemark: () => _openRemarkDialog(members[index]),
+            ),
           ),
-        );
-      },
+      ],
     );
   }
 }
@@ -681,67 +670,6 @@ class _FilterChipItem extends StatelessWidget {
         label: Text(label),
         selected: selected,
         onSelected: (_) => onSelected(value),
-      ),
-    );
-  }
-}
-
-class _MemberList extends StatelessWidget {
-  const _MemberList({
-    required this.members,
-    required this.savingRemark,
-    required this.onEditRemark,
-  });
-
-  final List<SessionMember> members;
-  final bool savingRemark;
-  final ValueChanged<SessionMember> onEditRemark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (final member in members)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _DetailMemberCard(
-              member: member,
-              savingRemark: savingRemark,
-              onEditRemark: () => onEditRemark(member),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _MemberGrid extends StatelessWidget {
-  const _MemberGrid({
-    required this.members,
-    required this.savingRemark,
-    required this.onEditRemark,
-  });
-
-  final List<SessionMember> members;
-  final bool savingRemark;
-  final ValueChanged<SessionMember> onEditRemark;
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: members.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        mainAxisExtent: 220,
-      ),
-      itemBuilder: (context, index) => _DetailMemberCard(
-        member: members[index],
-        savingRemark: savingRemark,
-        onEditRemark: () => onEditRemark(members[index]),
       ),
     );
   }

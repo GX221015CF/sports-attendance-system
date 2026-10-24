@@ -8,17 +8,19 @@ import '../../theme/app_theme.dart';
 import '../../widgets/admin/admin_group_card.dart';
 import '../../widgets/admin/group_form_sheet.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/error_state.dart';
 
 class AdminGroupsPage extends StatefulWidget {
-  const AdminGroupsPage({super.key});
+  const AdminGroupsPage({super.key, this.groupService});
+  final AdminGroupService? groupService;
 
   @override
   State<AdminGroupsPage> createState() => _AdminGroupsPageState();
 }
 
 class _AdminGroupsPageState extends State<AdminGroupsPage> {
-  final _groupService = AdminGroupService();
+  late final _groupService = widget.groupService ?? AdminGroupService();
   final _searchController = TextEditingController();
   Timer? _searchDebounce;
 
@@ -215,60 +217,45 @@ class _AdminGroupsPageState extends State<AdminGroupsPage> {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact =
-            constraints.maxWidth > constraints.maxHeight ||
-            constraints.maxWidth >= 720;
-        final filteredGroups = _filteredGroups;
-
-        return RefreshIndicator(
-          onRefresh: _loadGroups,
-          child: ListView(
-            padding: EdgeInsets.fromLTRB(
-              compact ? 28 : 20,
-              compact ? 8 : 14,
-              compact ? 28 : 20,
-              92,
+    final groups = _filteredGroups;
+    return AdaptivePageBody(
+      storageKey: 'admin-groups',
+      toolbar: _TopBar(onRefresh: _loading ? null : _loadGroups),
+      summary: _SummaryHeader(total: _groups.length),
+      filters: TextField(
+        controller: _searchController,
+        onChanged: _updateSearchKeyword,
+        decoration: const InputDecoration(
+          prefixIcon: Icon(Icons.search),
+          hintText: '按分组名称搜索',
+        ),
+      ),
+      onRefresh: _loadGroups,
+      bottomPadding: 92,
+      slivers: [
+        if (groups.isEmpty)
+          const SliverToBoxAdapter(
+            child: EmptyState(
+              icon: Icons.category_outlined,
+              title: '暂无分组',
+              message: '请调整搜索，或点击新增分组。',
             ),
-            children: [
-              _TopBar(onRefresh: _loading ? null : _loadGroups),
-              SizedBox(height: compact ? 12 : 18),
-              _SummaryHeader(total: _groups.length),
-              SizedBox(height: compact ? 12 : 16),
-              TextField(
-                controller: _searchController,
-                onChanged: _updateSearchKeyword,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  hintText: '按分组名称搜索',
-                ),
-              ),
-              SizedBox(height: compact ? 12 : 16),
-              if (filteredGroups.isEmpty)
-                const EmptyState(
-                  icon: Icons.category_outlined,
-                  title: '暂无分组',
-                  message: '当前没有匹配的分组。可以点击右下角新增分组，或点击右上角刷新。',
-                )
-              else if (compact)
-                _GroupGrid(
-                  groups: filteredGroups,
-                  deletingGroupId: _deletingGroupId,
-                  onEdit: _openGroupForm,
-                  onDelete: _confirmDelete,
-                )
-              else
-                _GroupList(
-                  groups: filteredGroups,
-                  deletingGroupId: _deletingGroupId,
-                  onEdit: _openGroupForm,
-                  onDelete: _confirmDelete,
-                ),
-            ],
+          )
+        else
+          ResponsiveSliverCards(
+            itemCount: groups.length,
+            itemBuilder: (context, index) {
+              final summary = groups[index];
+              return AdminGroupCard(
+                key: ValueKey(summary.group.id),
+                summary: summary,
+                deleting: _deletingGroupId == summary.group.id,
+                onEdit: () => _openGroupForm(summary.group),
+                onDelete: () => _confirmDelete(summary),
+              );
+            },
           ),
-        );
-      },
+      ],
     );
   }
 }
@@ -370,76 +357,6 @@ class _SummaryHeader extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _GroupList extends StatelessWidget {
-  const _GroupList({
-    required this.groups,
-    required this.deletingGroupId,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final List<AdminGroupSummary> groups;
-  final String? deletingGroupId;
-  final ValueChanged<TeamGroup> onEdit;
-  final ValueChanged<AdminGroupSummary> onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (final summary in groups)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: AdminGroupCard(
-              summary: summary,
-              deleting: deletingGroupId == summary.group.id,
-              onEdit: () => onEdit(summary.group),
-              onDelete: () => onDelete(summary),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _GroupGrid extends StatelessWidget {
-  const _GroupGrid({
-    required this.groups,
-    required this.deletingGroupId,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final List<AdminGroupSummary> groups;
-  final String? deletingGroupId;
-  final ValueChanged<TeamGroup> onEdit;
-  final ValueChanged<AdminGroupSummary> onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: groups.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        mainAxisExtent: 208,
-      ),
-      itemBuilder: (context, index) {
-        final summary = groups[index];
-        return AdminGroupCard(
-          summary: summary,
-          deleting: deletingGroupId == summary.group.id,
-          onEdit: () => onEdit(summary.group),
-          onDelete: () => onDelete(summary),
-        );
-      },
     );
   }
 }

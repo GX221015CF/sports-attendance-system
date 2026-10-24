@@ -3,22 +3,25 @@ import 'package:flutter/material.dart';
 import '../../services/admin_auth_service.dart';
 import '../../services/admin_dashboard_service.dart';
 import '../../theme/app_theme.dart';
-import '../../utils/supabase_project_label.dart';
+import '../../widgets/adaptive_page_body.dart';
 import 'admin_create_session_page.dart';
 import 'admin_groups_page.dart';
 import 'admin_members_page.dart';
 import 'admin_sessions_page.dart';
 
 class AdminHomePage extends StatefulWidget {
-  const AdminHomePage({super.key});
+  const AdminHomePage({super.key, this.dashboardService, this.authService});
+  final AdminDashboardService? dashboardService;
+  final AdminAuthService? authService;
 
   @override
   State<AdminHomePage> createState() => _AdminHomePageState();
 }
 
 class _AdminHomePageState extends State<AdminHomePage> {
-  final _authService = AdminAuthService();
-  final _dashboardService = AdminDashboardService();
+  late final _authService = widget.authService ?? AdminAuthService();
+  late final _dashboardService =
+      widget.dashboardService ?? AdminDashboardService();
 
   bool _loading = false;
   bool _signingOut = false;
@@ -140,160 +143,85 @@ class _AdminHomePageState extends State<AdminHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final email = _authService.currentUser?.email ?? '未知邮箱';
-
+    final email = _authService.currentUser?.email ?? '管理员';
+    final cards = [
+      _AdminFeature(
+        title: '成员管理',
+        description: '查看、维护队员信息',
+        icon: Icons.groups_2_outlined,
+        onTap: _openMembersPage,
+      ),
+      _AdminFeature(
+        title: '分组管理',
+        description: '维护训练分组和描述',
+        icon: Icons.category_outlined,
+        onTap: _openGroupsPage,
+      ),
+      _AdminFeature(
+        title: '签到任务',
+        description: '查看签到进度和结果',
+        icon: Icons.fact_check_outlined,
+        onTap: _openSessionsPage,
+      ),
+      _AdminFeature(
+        title: '数据导出',
+        description: '电脑 Web 后台使用',
+        icon: Icons.file_download_outlined,
+        onTap: _showComingSoon,
+      ),
+    ];
     return Scaffold(
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final compact =
-                constraints.maxWidth > constraints.maxHeight ||
-                constraints.maxWidth >= 720;
-            final cards = [
-              _AdminFeature(
-                title: '成员管理',
-                description: '查看、维护队员信息',
-                icon: Icons.groups_2_outlined,
-                onTap: _openMembersPage,
-              ),
-              _AdminFeature(
-                title: '分组管理',
-                description: '维护训练分组和描述',
-                icon: Icons.category_outlined,
-                onTap: _openGroupsPage,
-              ),
-              _AdminFeature(
-                title: '签到任务',
-                description: '查看签到进度和结果',
-                icon: Icons.fact_check_outlined,
-                onTap: _openSessionsPage,
-              ),
-              _AdminFeature(
-                title: '创建签到',
-                description: '发布训练签到任务',
-                icon: Icons.add_task_outlined,
-                onTap: _openCreateSessionPage,
-              ),
-              _AdminFeature(
-                title: '数据导出',
-                description: '电脑 Web 后台使用',
-                icon: Icons.file_download_outlined,
-                onTap: _showComingSoon,
-              ),
-            ];
-
-            return RefreshIndicator(
-              onRefresh: _loadStats,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
-                  compact ? 32 : 22,
-                  compact ? 16 : 24,
-                  compact ? 32 : 22,
-                  24,
-                ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 860),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _TopBar(
-                          loading: _loading,
-                          signingOut: _signingOut,
-                          onRefresh: _loadStats,
-                          onSignOut: _handleSignOut,
-                        ),
-                        SizedBox(height: compact ? 14 : 22),
-                        _AdminHero(email: email),
-                        const SizedBox(height: 10),
-                        _ProjectLabel(label: getSupabaseProjectLabel()),
-                        SizedBox(height: compact ? 14 : 22),
-                        if (_loading && _stats == null)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 48),
-                            child: Center(child: CircularProgressIndicator()),
-                          )
-                        else if (_errorMessage != null)
-                          _DashboardError(
-                            retrying: _loading,
-                            onRetry: _loadStats,
-                          )
-                        else ...[
-                          _DashboardGrid(
-                            stats: _stats ?? _emptyStats,
-                            compact: compact,
-                          ),
-                          SizedBox(height: compact ? 14 : 20),
-                          Text(
-                            '常用功能',
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(
-                                  color: AppTheme.textStrong,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                          ),
-                          const SizedBox(height: 12),
-                          GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: cards.length,
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: compact ? 4 : 2,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  mainAxisExtent: compact ? 132 : 148,
-                                ),
-                            itemBuilder: (context, index) {
-                              return _FeatureCard(feature: cards[index]);
-                            },
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
+        child: AdaptivePageBody(
+          storageKey: 'admin-home',
+          toolbar: _TopBar(
+            loading: _loading,
+            signingOut: _signingOut,
+            onRefresh: _loadStats,
+            onSignOut: _handleSignOut,
+          ),
+          summary: _AdminHero(email: email),
+          onRefresh: _loadStats,
+          slivers: [
+            SliverToBoxAdapter(
+              child: _loading && _stats == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : _errorMessage != null
+                  ? _DashboardError(retrying: _loading, onRetry: _loadStats)
+                  : _DashboardGrid(stats: _stats ?? _emptyStats),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  '常用功能',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
               ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _ProjectLabel extends StatelessWidget {
-  const _ProjectLabel({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.cloud_done_outlined, color: AppTheme.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textMuted,
-                fontWeight: FontWeight.w800,
+            ),
+            ResponsiveSliverCards(
+              itemCount: cards.length,
+              minCardWidth: 220,
+              maxColumns: 3,
+              itemBuilder: (context, index) =>
+                  _FeatureCard(feature: cards[index]),
+            ),
+          ],
+          footer: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _openCreateSessionPage,
+              icon: const Icon(Icons.add_task_outlined),
+              label: const Text('创建签到'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.secondary,
+                foregroundColor: Colors.white,
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -435,10 +363,9 @@ class _AdminHero extends StatelessWidget {
 }
 
 class _DashboardGrid extends StatelessWidget {
-  const _DashboardGrid({required this.stats, required this.compact});
+  const _DashboardGrid({required this.stats});
 
   final AdminDashboardStats stats;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -462,31 +389,22 @@ class _DashboardGrid extends StatelessWidget {
         AppTheme.textMuted,
         Icons.lock_clock_outlined,
       ),
-      _DashboardItem(
-        '待签到人数',
-        stats.pendingCheckins,
-        AppTheme.secondary,
-        Icons.pending_actions_outlined,
-      ),
-      _DashboardItem(
-        '迟到人数',
-        stats.lateCheckins,
-        AppTheme.error,
-        Icons.warning_amber_outlined,
-      ),
     ];
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: items.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: compact ? 3 : 2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        mainAxisExtent: compact ? 104 : 112,
+    return LayoutBuilder(
+      builder: (context, constraints) => Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          for (final item in items)
+            SizedBox(
+              width: constraints.maxWidth >= 420
+                  ? (constraints.maxWidth - 12) / 2
+                  : constraints.maxWidth,
+              child: _DashboardCard(item: item),
+            ),
+        ],
       ),
-      itemBuilder: (context, index) => _DashboardCard(item: items[index]),
     );
   }
 }
@@ -663,7 +581,7 @@ class _FeatureCard extends StatelessWidget {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 40,
@@ -674,6 +592,7 @@ class _FeatureCard extends StatelessWidget {
                 ),
                 child: Icon(feature.icon, color: AppTheme.primary),
               ),
+              const SizedBox(height: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
