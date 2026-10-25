@@ -8,6 +8,7 @@ import '../services/attendance_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_formatter.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/attendance_motion.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/error_state.dart';
 import '../widgets/status_tag.dart';
@@ -144,7 +145,12 @@ class _CurrentSessionPageState extends State<CurrentSessionPage> {
     final session = _session;
     Widget content;
     if (_loading && session == null && _errorMessage == null) {
-      content = const Center(child: CircularProgressIndicator());
+      content = const LoadingSkeleton(
+        statistics: true,
+        columns: 3,
+        count: 6,
+        cardHeight: 72,
+      );
     } else if (_errorMessage != null) {
       content = Column(
         children: [
@@ -187,7 +193,9 @@ class _CurrentSessionPageState extends State<CurrentSessionPage> {
       storageKey: 'current-session',
       toolbar: _TopBar(compact: true, onAdminPressed: _openAdminEntry),
       summary: session == null
-          ? const SizedBox.shrink()
+          ? _loading
+                ? const LoadingSkeleton(count: 1, cardHeight: 235)
+                : const SizedBox.shrink()
           : _HeroCard(
               session: session,
               compact: true,
@@ -634,9 +642,8 @@ class _StatTile extends StatelessWidget {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: Text(
-                item.value.toString(),
-                maxLines: 1,
+              child: RollingCount(
+                value: item.value,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: item.color,
                   fontWeight: FontWeight.w900,

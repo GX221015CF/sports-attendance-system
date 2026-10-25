@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../widgets/attendance_motion.dart';
+import '../widgets/interaction_audio_controls.dart';
 import 'package:uuid/uuid.dart';
 
 import '../config/supabase_config.dart';
@@ -74,7 +76,9 @@ class _ModeHomePageState extends State<ModeHomePage> {
       );
     }
     if (_offline == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: SafeArea(child: LoadingSkeleton(fullPage: true)),
+      );
     }
     if (_offline!) {
       return OfflineHomePage(
@@ -93,6 +97,7 @@ class _ModeHomePageState extends State<ModeHomePage> {
                   const Icon(Icons.cloud_outlined, size: 20),
                   const SizedBox(width: 8),
                   const Expanded(child: Text('在线模式 · 实时读取云端')),
+                  const SoundToggleButton(),
                   TextButton.icon(
                     onPressed: () => _switchMode(true),
                     icon: const Icon(Icons.offline_bolt_outlined),

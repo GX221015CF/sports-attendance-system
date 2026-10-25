@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'form_surface.dart';
+import '../services/interaction_audio.dart';
 
 Future<bool?> showEditRemarkSheet({
   required BuildContext context,
@@ -77,6 +78,7 @@ class _EditRemarkDialogState extends State<EditRemarkDialog> {
         return;
       }
 
+      InteractionAudio.instance.play(SoundCue.success);
       Navigator.of(context).pop(true);
     } on Object catch (_) {
       if (!mounted) {
@@ -87,6 +89,7 @@ class _EditRemarkDialogState extends State<EditRemarkDialog> {
         _errorMessage = '备注保存失败，请稍后重试。';
         _saving = false;
       });
+      InteractionAudio.instance.play(SoundCue.failure);
     }
   }
 

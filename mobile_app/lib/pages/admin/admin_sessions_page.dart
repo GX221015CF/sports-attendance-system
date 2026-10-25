@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../widgets/attendance_motion.dart';
 
 import '../../models/admin_session.dart';
 import '../../services/admin_session_service.dart';
@@ -136,7 +137,7 @@ class _AdminSessionsPageState extends State<AdminSessionsPage> {
 
   Widget _buildBody(BuildContext context) {
     if (_loading && _sessions.isEmpty && _errorMessage == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const LoadingSkeleton(fullPage: true);
     }
 
     if (_errorMessage != null) {

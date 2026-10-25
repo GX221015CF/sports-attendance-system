@@ -27,6 +27,26 @@ class SessionMember {
   final String groupName;
   final String remark;
 
+  /// Used only after persistence confirms the check-in was recorded.
+  SessionMember recordedCheckin({
+    required String status,
+    required DateTime time,
+    required int lateMinutes,
+  }) => SessionMember(
+    id: id,
+    sessionId: sessionId,
+    memberId: memberId,
+    status: status,
+    checkinTime: time,
+    lateMinutes: lateMinutes,
+    memberName: memberName,
+    studentId: studentId,
+    gender: gender,
+    phone: phone,
+    groupName: groupName,
+    remark: remark,
+  );
+
   factory SessionMember.fromJson(Map<String, dynamic> json) {
     final memberJson = json['members'] as Map<String, dynamic>? ?? {};
     final groupJson = memberJson['groups'] as Map<String, dynamic>? ?? {};

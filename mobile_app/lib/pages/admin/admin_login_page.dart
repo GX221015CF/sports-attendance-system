@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../branding/app_brand.dart';
 import '../../services/admin_auth_service.dart';
+import '../../services/interaction_audio.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/form_surface.dart';
@@ -59,10 +60,12 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
       }
 
       if (widget.returnAfterLogin) {
+        InteractionAudio.instance.play(SoundCue.success);
         Navigator.of(context).pop(true);
         return;
       }
 
+      InteractionAudio.instance.play(SoundCue.success);
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const AdminHomePage()),
       );
@@ -74,6 +77,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
       setState(() {
         _errorMessage = '登录失败，请检查邮箱和密码。';
       });
+      InteractionAudio.instance.play(SoundCue.failure);
     } finally {
       if (mounted) {
         setState(() {

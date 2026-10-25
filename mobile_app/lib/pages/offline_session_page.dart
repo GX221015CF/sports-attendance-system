@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/offline_session.dart';
 import '../models/session_member.dart';
 import '../services/offline_attendance_service.dart';
-import '../services/time_service.dart';
-import '../widgets/checkin_confirm_dialog.dart';
+import '../services/interaction_audio.dart';
+import '../widgets/attendance_motion.dart';
 import '../widgets/attendance_workspace.dart';
 import '../widgets/error_state.dart';
 import '../widgets/edit_remark_dialog.dart';
@@ -29,6 +29,9 @@ class _OfflineSessionPageState extends State<OfflineSessionPage> {
   String _keyword = '';
   String _filter = 'all';
   bool _busy = false;
+  String? _checkingMemberId;
+  int _successSequence = 0;
+  String? _successMessage;
   String? _error;
 
   @override
@@ -68,34 +71,42 @@ class _OfflineSessionPageState extends State<OfflineSessionPage> {
 
   Future<void> _checkin(SessionMember member) async {
     final s = _session;
-    if (_busy || s == null || s.isClosed || !s.canEdit) return;
-    setState(() => _busy = true);
+    if (_busy ||
+        member.status != 'pending' ||
+        !_members.any((m) => m.id == member.id && m.status == 'pending') ||
+        s == null ||
+        s.isClosed ||
+        !s.canEdit) {
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _checkingMemberId = member.id;
+    });
+    InteractionAudio.instance.play(SoundCue.tap);
     try {
-      final now = DateTime.now();
-      final preview = TimeService().previewCheckin(
-        now: now,
-        requiredTime: s.session.requiredTime,
-        endTime: s.session.endTime,
-      );
-      final approved = await showDialog<bool>(
-        context: context,
-        builder: (_) =>
-            CheckinConfirmDialog(member: member, now: now, preview: preview),
-      );
-      if (approved != true || !mounted) return;
-      // The service rechecks time at confirmation, rather than dialog opening.
+      // The local transaction remains authoritative for timing and editability.
       final saved = await widget.local.checkin(widget.sessionId, member.id);
-      _message(
-        saved.status == 'late'
-            ? '已保存在本机，迟到 ${saved.lateMinutes} 分钟'
-            : '正常签到已保存在本机，尚未上传',
-      );
+      if (!mounted) return;
+      setState(() {
+        _members = _members.map((m) => m.id == saved.id ? saved : m).toList();
+        _successMessage = saved.status == 'late'
+            ? '${member.memberName} · 已保存在本机，迟到 ${saved.lateMinutes} 分钟'
+            : '${member.memberName} · 正常签到已保存在本机，尚未上传';
+        _successSequence++;
+      });
     } on Object catch (_) {
       _message('签到未保存：可能已签到、已截止或本地写入失败，请刷新确认。');
+      InteractionAudio.instance.play(SoundCue.failure);
     } finally {
       if (mounted) {
-        setState(() => _busy = false);
         await _load();
+        if (mounted) {
+          setState(() {
+            _busy = false;
+            _checkingMemberId = null;
+          });
+        }
       }
     }
   }
@@ -171,57 +182,62 @@ class _OfflineSessionPageState extends State<OfflineSessionPage> {
         .toList();
     return Scaffold(
       body: SafeArea(
-        child: s == null || _error != null
-            ? Column(
-                children: [
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: BackButton(),
-                  ),
-                  Expanded(
-                    child: _error != null
-                        ? SingleChildScrollView(
-                            child: ErrorState(
-                              title: '本机任务读取失败',
-                              message: _error!,
-                              retrying: false,
-                              onRetry: _load,
-                            ),
-                          )
-                        : const Center(child: CircularProgressIndicator()),
-                  ),
-                ],
-              )
-            : AttendanceWorkspace(
-                session: s.session,
-                members: _members,
-                filteredMembers: filtered,
-                ended: s.isClosed,
-                local: true,
-                notice: s.locked
-                    ? '已进入同步流程，本机快照只读；失败可返回手动重试。'
-                    : '不会自动上传，任务结束后请返回列表手动同步。',
-                endAction: s.isClosed
-                    ? null
-                    : OutlinedButton(
-                        onPressed: _busy ? null : _end,
-                        child: const Text('结束本机任务'),
+        child: CheckinFeedback(
+          sequence: _successSequence,
+          message: _successMessage,
+          child: _error != null
+              ? Column(
+                  children: [
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: BackButton(),
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: ErrorState(
+                          title: '本机任务读取失败',
+                          message: _error!,
+                          retrying: false,
+                          onRetry: _load,
+                        ),
                       ),
-                searchController: _searchController,
-                statusFilter: _filter,
-                onSearchChanged: (value) =>
-                    setState(() => _keyword = value.trim()),
-                onStatusChanged: (value) => setState(() => _filter = value),
-                onRefresh: _load,
-                memberBuilder: (member) => MemberCard(
-                  member: member,
-                  checking: _busy,
-                  onCheckin: _busy || s.isClosed || !s.canEdit
+                    ),
+                  ],
+                )
+              : s == null
+              ? const LoadingSkeleton(fullPage: true, attendance: true)
+              : AttendanceWorkspace(
+                  session: s.session,
+                  members: _members,
+                  filteredMembers: filtered,
+                  ended: s.isClosed,
+                  local: true,
+                  notice: s.locked
+                      ? '已进入同步流程，本机快照只读；失败可返回手动重试。'
+                      : '不会自动上传，任务结束后请返回列表手动同步。',
+                  endAction: s.isClosed
                       ? null
-                      : () => _checkin(member),
-                  onEditRemark: () => _remark(member),
+                      : OutlinedButton(
+                          onPressed: _busy ? null : _end,
+                          child: const Text('结束本机任务'),
+                        ),
+                  searchController: _searchController,
+                  statusFilter: _filter,
+                  onSearchChanged: (value) =>
+                      setState(() => _keyword = value.trim()),
+                  onStatusChanged: (value) => setState(() => _filter = value),
+                  onRefresh: _load,
+                  memberBuilder: (member) => MemberCard(
+                    member: member,
+                    checking: _checkingMemberId == member.id,
+                    enabled: !_busy,
+                    onCheckin: s.isClosed || !s.canEdit
+                        ? null
+                        : () => _checkin(member),
+                    onEditRemark: () => _remark(member),
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }

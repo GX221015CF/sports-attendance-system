@@ -250,7 +250,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('$mode canceling check-in writes nothing', (tester) async {
+    testWidgets('$mode single tap saves without confirmation', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1180, 820));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final cloud = SigningCloud();
@@ -261,10 +261,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(ElevatedButton, '签到').first);
       await tester.pumpAndSettle();
-      expect(find.text('确认签到'), findsOneWidget);
-      await tester.tap(find.text('取消'));
-      await tester.pumpAndSettle();
-      expect(cloud.writes + device.writes, 0);
+      expect(find.text('确认签到'), findsNothing);
+      expect(find.byType(Dialog), findsNothing);
+      expect(cloud.writes + device.writes, 1);
     });
   }
 }

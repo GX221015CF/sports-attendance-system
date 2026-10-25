@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/group.dart';
 import '../../models/member.dart';
+import '../../services/interaction_audio.dart';
 import '../form_surface.dart';
 
 class MemberFormSheet extends StatefulWidget {
@@ -77,6 +78,7 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
       );
 
       if (mounted) {
+        InteractionAudio.instance.play(SoundCue.success);
         Navigator.of(context).pop(true);
       }
     } on Object catch (_) {
@@ -87,6 +89,7 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
       setState(() {
         _errorMessage = _editing ? '成员更新失败，请稍后重试。' : '成员新增失败，请稍后重试。';
       });
+      InteractionAudio.instance.play(SoundCue.failure);
     } finally {
       if (mounted) {
         setState(() {

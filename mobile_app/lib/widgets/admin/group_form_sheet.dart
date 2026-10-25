@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/group.dart';
+import '../../services/interaction_audio.dart';
 import '../form_surface.dart';
 
 class GroupFormSheet extends StatefulWidget {
@@ -57,6 +58,7 @@ class _GroupFormSheetState extends State<GroupFormSheet> {
       );
 
       if (mounted) {
+        InteractionAudio.instance.play(SoundCue.success);
         Navigator.of(context).pop(true);
       }
     } on Object catch (_) {
@@ -67,6 +69,7 @@ class _GroupFormSheetState extends State<GroupFormSheet> {
       setState(() {
         _errorMessage = _editing ? '分组更新失败，请稍后重试。' : '分组新增失败，请稍后重试。';
       });
+      InteractionAudio.instance.play(SoundCue.failure);
     } finally {
       if (mounted) {
         setState(() {

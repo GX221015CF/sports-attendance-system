@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../widgets/attendance_motion.dart';
+import '../../services/interaction_audio.dart';
 
 import '../../models/admin_session.dart';
 import '../../models/group.dart';
@@ -201,18 +203,26 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
   }
 
   void _selectFilteredMembers() {
+    if (_filteredMembers.any((m) => !_selectedMemberIds.contains(m.id))) {
+      InteractionAudio.instance.play(SoundCue.select);
+    }
     setState(() {
       _selectedMemberIds.addAll(_filteredMembers.map((member) => member.id));
     });
   }
 
   void _clearSelection() {
+    if (_selectedMemberIds.isNotEmpty) {
+      InteractionAudio.instance.play(SoundCue.select);
+    }
     setState(() {
       _selectedMemberIds.clear();
     });
   }
 
   void _toggleMember(String memberId, bool selected) {
+    if (_selectedMemberIds.contains(memberId) == selected) return;
+    InteractionAudio.instance.play(SoundCue.select);
     setState(() {
       if (selected) {
         _selectedMemberIds.add(memberId);
@@ -276,11 +286,13 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
         ),
       );
 
+      InteractionAudio.instance.play(SoundCue.success);
       Navigator.of(context).pop(true);
     } on Object catch (_) {
       if (!mounted) {
         return;
       }
+      InteractionAudio.instance.play(SoundCue.failure);
 
       ScaffoldMessenger.of(
         context,
@@ -448,10 +460,7 @@ class _AdminCreateSessionPageState extends State<AdminCreateSessionPage> {
     if (_members.isEmpty || members.isEmpty) {
       return SliverToBoxAdapter(
         child: _loading
-            ? const Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('正在准备成员名单…'),
-              )
+            ? const LoadingSkeleton(cardHeight: 92)
             : EmptyState(
                 icon: _members.isEmpty
                     ? Icons.group_off_outlined

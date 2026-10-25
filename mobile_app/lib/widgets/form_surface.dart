@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../services/interaction_audio.dart';
 
 bool reduceFormMotion(BuildContext context) =>
     MediaQuery.disableAnimationsOf(context) ||
@@ -259,7 +260,12 @@ class SubmissionButton extends StatelessWidget {
     child: ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 48),
       child: ElevatedButton(
-        onPressed: busy ? null : onPressed,
+        onPressed: busy
+            ? null
+            : () {
+                InteractionAudio.instance.play(SoundCue.tap);
+                onPressed();
+              },
         style: ElevatedButton.styleFrom(
           backgroundColor: AppTheme.secondary,
           foregroundColor: Colors.white,

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../widgets/attendance_motion.dart';
+import '../widgets/interaction_audio_controls.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/supabase_config.dart';
@@ -287,6 +289,7 @@ class _OfflineHomePageState extends State<OfflineHomePage> {
       appBar: AppBar(
         title: const Text('离线模式'),
         actions: [
+          const SoundToggleButton(color: Colors.white),
           TextButton(
             onPressed: busy ? null : widget.onGoOnline,
             child: const Text('切回在线', style: TextStyle(color: Colors.white)),
@@ -342,6 +345,8 @@ class _OfflineHomePageState extends State<OfflineHomePage> {
           slivers: [
             if (_loading)
               const SliverToBoxAdapter(child: LinearProgressIndicator()),
+            if (_loading && _sessions.isEmpty)
+              const SliverToBoxAdapter(child: LoadingSkeleton()),
             if (_error != null) SliverToBoxAdapter(child: Text(_error!)),
             SliverToBoxAdapter(
               child: Padding(

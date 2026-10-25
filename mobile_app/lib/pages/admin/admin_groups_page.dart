@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/attendance_motion.dart';
 
 import 'dart:async';
 
@@ -208,7 +209,7 @@ class _AdminGroupsPageState extends State<AdminGroupsPage> {
 
   Widget _buildBody(BuildContext context) {
     if (_loading && _groups.isEmpty && _errorMessage == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const LoadingSkeleton(fullPage: true);
     }
 
     if (_errorMessage != null) {

@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../models/attendance_session.dart';
 import '../models/session_member.dart';
 import '../theme/app_theme.dart';
+import '../services/interaction_audio.dart';
 import '../utils/date_formatter.dart';
 import 'empty_state.dart';
+import 'attendance_motion.dart';
 
 const attendanceStatusLabels = {
   'all': '全部',
@@ -68,7 +70,12 @@ class AttendanceWorkspace extends StatelessWidget {
           hint: local ? '搜索姓名或学号' : '按姓名搜索',
           status: statusFilter,
           onSearch: onSearchChanged,
-          onStatus: onStatusChanged,
+          onStatus: (value) {
+            if (value != statusFilter) {
+              InteractionAudio.instance.play(SoundCue.select);
+            }
+            onStatusChanged(value);
+          },
         );
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -364,8 +371,8 @@ class _Overview extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          entry.value,
+                        RollingCount(
+                          value: int.parse(entry.value),
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
                                 color: AppTheme.primary,

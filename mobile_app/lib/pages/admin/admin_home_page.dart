@@ -4,6 +4,7 @@ import '../../services/admin_auth_service.dart';
 import '../../services/admin_dashboard_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/adaptive_page_body.dart';
+import '../../widgets/attendance_motion.dart';
 import 'admin_create_session_page.dart';
 import 'admin_groups_page.dart';
 import 'admin_members_page.dart';
@@ -185,7 +186,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
           slivers: [
             SliverToBoxAdapter(
               child: _loading && _stats == null
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const LoadingSkeleton(statistics: true, cardHeight: 82)
                   : _errorMessage != null
                   ? _DashboardError(retrying: _loading, onRetry: _loadStats)
                   : _DashboardGrid(stats: _stats ?? _emptyStats),
@@ -459,8 +460,8 @@ class _DashboardCard extends StatelessWidget {
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: Text(
-                    item.value.toString(),
+                  child: RollingCount(
+                    value: item.value,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       color: item.color,
                       fontWeight: FontWeight.w900,

@@ -4,6 +4,8 @@ import '../models/session_member.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_formatter.dart';
 import 'status_tag.dart';
+import 'form_surface.dart';
+import 'attendance_motion.dart';
 
 class MemberCard extends StatelessWidget {
   const MemberCard({
@@ -12,12 +14,14 @@ class MemberCard extends StatelessWidget {
     required this.onCheckin,
     required this.onEditRemark,
     required this.checking,
+    this.enabled = true,
   });
 
   final SessionMember member;
   final VoidCallback? onCheckin;
   final VoidCallback onEditRemark;
   final bool checking;
+  final bool enabled;
 
   bool get _showCheckinButton =>
       member.status == 'pending' && onCheckin != null;
@@ -39,10 +43,13 @@ class MemberCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: formMotionDuration(context, 200),
       constraints: const BoxConstraints(minHeight: 138),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: member.status == 'normal'
+            ? const Color(0xFFEFFAF3)
+            : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border(left: BorderSide(color: _accentColor, width: 5)),
         boxShadow: [
@@ -66,12 +73,19 @@ class MemberCard extends StatelessWidget {
                       child: _MemberInfo(member: member, textColor: _textColor),
                     ),
                     const SizedBox(width: 10),
-                    _TrailingStatus(
-                      member: member,
-                      checking: checking,
-                      showCheckinButton: _showCheckinButton,
-                      onCheckin: onCheckin,
-                      onEditRemark: onEditRemark,
+                    AnimatedSwitcher(
+                      duration: formMotionDuration(context, 150),
+                      child: _TrailingStatus(
+                        key: ValueKey(
+                          '${member.id}-${checking ? 'saving' : member.status}',
+                        ),
+                        member: member,
+                        checking: checking,
+                        enabled: enabled,
+                        showCheckinButton: _showCheckinButton,
+                        onCheckin: onCheckin,
+                        onEditRemark: onEditRemark,
+                      ),
                     ),
                   ],
                 ),
@@ -181,8 +195,10 @@ class _MetaText extends StatelessWidget {
 
 class _TrailingStatus extends StatelessWidget {
   const _TrailingStatus({
+    super.key,
     required this.member,
     required this.checking,
+    required this.enabled,
     required this.showCheckinButton,
     required this.onCheckin,
     required this.onEditRemark,
@@ -190,6 +206,7 @@ class _TrailingStatus extends StatelessWidget {
 
   final SessionMember member;
   final bool checking;
+  final bool enabled;
   final bool showCheckinButton;
   final VoidCallback? onCheckin;
   final VoidCallback onEditRemark;
@@ -205,25 +222,39 @@ class _TrailingStatus extends StatelessWidget {
           SizedBox(
             width: 84,
             height: 48,
-            child: ElevatedButton(
-              onPressed: checking ? null : onCheckin,
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            child: PressFeedback(
+              enabled: enabled && !checking,
+              child: ElevatedButton(
+                onPressed: checking || !enabled ? null : onCheckin,
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
+                child: checking
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: reduceFormMotion(context)
+                                ? const Icon(Icons.hourglass_top, size: 16)
+                                : const CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Text('保存中'),
+                        ],
+                      )
+                    : const Text('签到'),
               ),
-              child: checking
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('签到'),
             ),
           ),
           const SizedBox(height: 8),
-          _RemarkButton(onPressed: onEditRemark),
+          _RemarkButton(onPressed: enabled ? onEditRemark : null),
         ],
       );
     }
@@ -245,7 +276,7 @@ class _TrailingStatus extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 8),
-        _RemarkButton(onPressed: onEditRemark),
+        _RemarkButton(onPressed: enabled ? onEditRemark : null),
       ],
     );
   }
@@ -254,7 +285,7 @@ class _TrailingStatus extends StatelessWidget {
 class _RemarkButton extends StatelessWidget {
   const _RemarkButton({required this.onPressed});
 
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
