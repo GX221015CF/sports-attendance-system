@@ -1,12 +1,14 @@
 # 队齐 · 第一版项目介绍视频
 
-[![观看第一版完整介绍视频](images/cover.jpg)](https://github.com/GX221015CF/sports-attendance-system/blob/master/docs/showcase/demo.mp4)
+[![观看第一版完整介绍视频](images/cover.jpg)](https://gx221015cf.github.io/sports-attendance-system/showcase/)
 
-**[▶ 在 GitHub 观看](https://github.com/GX221015CF/sports-attendance-system/blob/master/docs/showcase/demo.mp4)** · [直接打开／下载 MP4](https://raw.githubusercontent.com/GX221015CF/sports-attendance-system/master/docs/showcase/demo.mp4) · [返回项目介绍](../../README.md)
+**[▶ 在线播放](https://gx221015cf.github.io/sports-attendance-system/showcase/)** · [直接打开 MP4](https://gx221015cf.github.io/sports-attendance-system/showcase/demo.mp4) · [仓库原文件下载](https://raw.githubusercontent.com/GX221015CF/sports-attendance-system/master/docs/showcase/demo.mp4) · [返回项目介绍](../../README.md)
 
 ## 展示版本
 
 本目录采用用户选定的 **Remotion 第一版完整初剪 full-v1**。视频按原字节复制，封面及六张代表截图均从该成片提取。应用源码以已验收的 `duiqi-ux-audio-v2-20261025` 为整合基线。
+
+GitHub Pages 播放页使用原生视频控件，支持播放、进度与音量操作。仓库 MP4 文件页受 GitHub 二进制预览限制，视频原文件同时保留下载入口。
 
 | 项目 | 数值 |
 | --- | --- |

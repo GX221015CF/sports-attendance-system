@@ -10,9 +10,9 @@
 
 ## 项目介绍视频
 
-[![点击观看队齐介绍视频，约 62 秒](docs/showcase/images/cover.jpg)](https://github.com/GX221015CF/sports-attendance-system/blob/master/docs/showcase/demo.mp4)
+[![点击观看队齐介绍视频，约 62 秒](docs/showcase/images/cover.jpg)](https://gx221015cf.github.io/sports-attendance-system/showcase/)
 
-**[▶ 观看第一版完整介绍视频](https://github.com/GX221015CF/sports-attendance-system/blob/master/docs/showcase/demo.mp4)** · [直接打开／下载 MP4](https://raw.githubusercontent.com/GX221015CF/sports-attendance-system/master/docs/showcase/demo.mp4) · [镜头与素材说明](docs/showcase/README.md)
+**[▶ 在线播放第一版完整介绍视频](https://gx221015cf.github.io/sports-attendance-system/showcase/)** · [直接打开 MP4](https://gx221015cf.github.io/sports-attendance-system/showcase/demo.mp4) · [仓库原文件下载](https://raw.githubusercontent.com/GX221015CF/sports-attendance-system/master/docs/showcase/demo.mp4) · [镜头与素材说明](docs/showcase/README.md)
 
 第一版 Remotion 完整初剪，约 62 秒，1080p / 30fps。视频展示成员管理、创建任务、现场签到、备注、结束结算、Web 与单任务 Excel。画面中的姓名、学号和相关个人字段使用演示映射。结束段切换到另一训练任务，Web 展示历史任务，具体语境见镜头说明。
 

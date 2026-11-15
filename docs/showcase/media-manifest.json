@@ -74,5 +74,13 @@
       "bytes": 783269,
       "sha256": "2d01c1f8e7475344b147d2b5712d0b3b0bf14803364046e9268594caf07c9168"
     }
-  ]
+  ],
+  "brand": {
+    "file": "images/duiqi.png",
+    "source": "mobile_app/assets/branding/duiqi.png",
+    "width": 432,
+    "height": 432,
+    "bytes": 6094,
+    "sha256": "13b7d09716aef0fc30bd430e31480b1e81a1c75f81f5831817b8cc23e867e1bb"
+  }
 }

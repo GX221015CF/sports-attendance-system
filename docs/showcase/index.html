@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="队齐运动队签到考勤系统第一版介绍视频。Flutter Android App、React 管理后台与校队日常考勤实践。">
+    <meta name="theme-color" content="#1E40AF">
+    <title>队齐 · 项目介绍视频</title>
+    <link rel="icon" href="images/duiqi.png" type="image/png">
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, "Microsoft YaHei", "PingFang SC", sans-serif;
+        color: #0f172a;
+        background: #f8fafc;
+      }
+
+      * { box-sizing: border-box; }
+
+      body { margin: 0; }
+
+      main {
+        width: min(1120px, calc(100% - 48px));
+        margin: 48px auto;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .brand {
+        width: 64px;
+        height: 64px;
+        flex-shrink: 0;
+        border-radius: 14px;
+      }
+
+      h1 {
+        margin: 0 0 6px;
+        font-size: clamp(20px, 3.5vw, 30px);
+        line-height: 1.35;
+        letter-spacing: -0.03em;
+      }
+
+      p { line-height: 1.7; }
+
+      header p {
+        margin: 0;
+        color: #64748b;
+        font-size: 14px;
+      }
+
+      video {
+        display: block;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        background: #0f172a;
+        border: 1px solid #dbe3ef;
+        border-radius: 16px;
+        box-shadow: 0 12px 32px rgb(15 23 42 / 8%);
+      }
+
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px 24px;
+        margin: 22px 0;
+      }
+
+      a {
+        color: #1e40af;
+        text-underline-offset: 4px;
+      }
+
+      a:hover { text-decoration-thickness: 2px; }
+
+      a:focus-visible {
+        outline: 3px solid #f97316;
+        outline-offset: 5px;
+        border-radius: 2px;
+      }
+
+      .download {
+        padding: 11px 18px;
+        border-radius: 9px;
+        background: #1e40af;
+        color: white;
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .context {
+        max-width: 860px;
+        color: #475569;
+        font-size: 14px;
+      }
+
+      .context p { margin: 8px 0; }
+
+      @media (max-width: 600px) {
+        main {
+          width: calc(100% - 24px);
+          margin: 24px auto;
+        }
+
+        header { gap: 12px; }
+        .brand { width: 48px; height: 48px; border-radius: 10px; }
+        video { border-radius: 10px; }
+        nav { gap: 14px 20px; font-size: 14px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <img class="brand" src="images/duiqi.png" width="64" height="64" alt="队齐图标">
+        <div>
+          <h1>队齐 · 运动队签到考勤系统</h1>
+          <p>第一版完整介绍 · 约 62 秒 · 1080p / 30fps</p>
+        </div>
+      </header>
+
+      <video controls playsinline preload="metadata" poster="images/cover.jpg" aria-label="队齐运动队签到考勤系统第一版项目介绍视频">
+        <source src="demo.mp4" type="video/mp4">
+        您可以<a href="demo.mp4" download>下载 MP4</a>，使用本机播放器观看。
+      </video>
+
+      <nav aria-label="项目与视频入口">
+        <a class="download" href="demo.mp4" download="duiqi-full-intro-first-cut-v1.mp4">下载第一版 MP4</a>
+        <a href="https://github.com/GX221015CF/sports-attendance-system">查看 GitHub 项目与本人职责</a>
+        <a href="https://github.com/GX221015CF/sports-attendance-system/blob/master/docs/showcase/README.md">镜头与素材说明</a>
+      </nav>
+
+      <section class="context" aria-label="演示内容说明">
+        <p>名单准备、现场签到、备注、任务结算与报表。本人负责签到规则、页面流程及体验验收，借助 AI 完成移动端和管理后台，项目已用于校队日常考勤。</p>
+        <p>画面中的姓名、学号及相关个人字段为演示数据。结束段切换另一训练任务，Web 为历史任务，Excel 展示单任务工作表。项目另有离线签到与手动同步能力，详细说明见仓库。</p>
+      </section>
+    </main>
+  </body>
+</html>

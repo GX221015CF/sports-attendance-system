@@ -15,7 +15,7 @@
 - `docs/`：产品、运行、测试和项目上下文文档。
 - `design/stitch-ui/`：现有 Flutter 界面的设计参考图。
 
-项目仓库为 <https://github.com/GX221015CF/sports-attendance-system>，默认分支使用 `master`。应用源码整合基线为已验收的 `duiqi-ux-audio-v2-20261025`，应用包版本 `1.1.0+2`。2026-11-15 用户授权将现有验收成果与作品展示整合至默认分支，并公开原仓库；启动时现场核验仍为私有。发布与匿名访问结果以本轮活动状态和现场回读为准，仓库可见性、分支与远程提交在后续操作中继续重新核验。
+项目仓库为 <https://github.com/GX221015CF/sports-attendance-system>，默认分支使用 `master`。应用源码整合基线为已验收的 `duiqi-ux-audio-v2-20261025`，应用包版本 `1.1.0+2`。2026-11-15 按用户授权完成 master 正常快进整合、作品展示资料推送和原仓库公开，匿名首页、图片、视频文件及关键文档访问已核对。GitHub 文件页的 MP4 内嵌预览受平台限制，用户另行授权通过 GitHub Pages 提供[视频播放页](https://gx221015cf.github.io/sports-attendance-system/showcase/)，发布源为 `master` 的 `docs/` 目录。仓库可见性、分支与远程提交在后续操作中继续重新核验。
 
 ### 作品展示与本人职责（2026-11-15）
 
