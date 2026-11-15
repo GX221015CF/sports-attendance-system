@@ -7,7 +7,7 @@
 ## 1. 项目定位与路径
 
 - 项目：面向校队、社团和训练小组的签到考勤系统。
-- 本地根目录：`C:\Users\GX\Documents\New project 2\sports-attendance-system`。
+- 源码根目录为本仓库根目录，运行命令从该目录进入对应子目录。
 - `admin_web/`：React + Vite + TypeScript + Ant Design Web 管理后台。
 - `mobile_app/`：Flutter App，当前主要使用场景为 Android。
 - 移动端品牌：2026-10-25 用户选定「队齐」，功能说明「运动队签到」；图形母版为 `design/branding/20261025/duiqi.svg`，品牌常量与标记组件为 `mobile_app/lib/branding/app_brand.dart`。对用户名称与包名分开管理，保留既有 Android/Dart 标识。
@@ -15,7 +15,14 @@
 - `docs/`：产品、运行、测试和项目上下文文档。
 - `design/stitch-ui/`：现有 Flutter 界面的设计参考图。
 
-当前远程仓库为 <https://github.com/GX221015CF/sports-attendance-system>。2026-10-24 按用户要求切换回私有仓库，已回读核验；默认分支为 `master`。本次移动端代码基线为 1.1.0，包含显式离线签到与结束后手动同步。仓库可见性、分支和远程提交仍属易变事实，推送、发布或分享前重新检查。
+项目仓库为 <https://github.com/GX221015CF/sports-attendance-system>，默认分支使用 `master`。应用源码整合基线为已验收的 `duiqi-ux-audio-v2-20261025`，应用包版本 `1.1.0+2`。2026-11-15 用户授权将现有验收成果与作品展示整合至默认分支，并公开原仓库；启动时现场核验仍为私有。发布与匿名访问结果以本轮活动状态和现场回读为准，仓库可见性、分支与远程提交在后续操作中继续重新核验。
+
+### 作品展示与本人职责（2026-11-15）
+
+- 简历定位为“队齐运动队签到考勤 APP｜AI辅助开发，2026.06—至今”。用户确认本人负责签到规则、页面流程及体验验收，借助 AI 完成移动端和管理后台。
+- 用户确认项目已用于校队日常考勤，实现数字化管理并持续运行至今。人数、累计次数、节省时间和性能比例按后续可复核数据补充。
+- 展示媒体采用用户明确选定的 full-v1 第一版完整初剪，见 [展示说明](showcase/README.md)。视频约 62 秒，封面与代表截图均从同版成片提取。
+- 视频覆盖在线业务；结束段切换另一任务，Web 展示历史任务，Excel 为单任务工作表。离线和多任务汇总按实际源码能力另行说明。
 
 ## 2. 权威来源与判断顺序
 
@@ -159,13 +166,13 @@
 
 ```powershell
 # Web
-cd "C:\Users\GX\Documents\New project 2\sports-attendance-system\admin_web"
+cd admin_web
 npm run dev
 npm run lint
 npm run build
 
 # Flutter
-cd "C:\Users\GX\Documents\New project 2\sports-attendance-system\mobile_app"
+cd mobile_app
 flutter run -d DEVICE_ID --dart-define-from-file=.env
 flutter analyze
 flutter test
@@ -181,7 +188,7 @@ flutter build apk --release --dart-define-from-file=.env
 - “红屏、布局溢出、中文乱码、APK 安装问题已修复”等历史结论不能替代当前版本复测。
 - 生产前最高风险仍是开发 RLS 过宽和 Web 缺少严格管理员授权。
 - 删除成员会级联删除其历史签到记录；若产品需要保留历史，应优先使用 `is_active` 停用并重新设计删除策略。
-- 正式发布前还需确认 App 名称、图标、Android 签名、隐私说明、真实设备适配和数据备份方案。
+- 队齐名称与图标已接入；正式发布配置仍需完善 Android 签名、隐私说明、更多设备适配和数据备份方案。
 
 ## 11. 后续升级工作约定
 

@@ -1,333 +1,199 @@
-# 运动队签到考勤系统
+<img src="mobile_app/assets/branding/duiqi.png" alt="队齐图标" width="80">
 
-一个面向校队、社团和训练小组的签到考勤系统，包含 Flutter 移动端、React Web 管理后台、Supabase PostgreSQL 数据库脚本，以及配套的产品、运行和测试文档。
+# 队齐 · 运动队签到考勤系统
 
-当前移动端版本为 **1.1.0**，覆盖成员与分组管理、签到任务创建、现场签到、迟到/缺勤判定、备注、统计和 Excel 导出，并增加显式离线签到与结束后手动同步。
+面向校队日常训练的考勤工具，将名单准备、现场签到和训练后汇总连接起来。包含 **Flutter Android App、React Web 管理后台、SQLite 离线记录与 Excel 报表**。
 
-## 功能概览
+**本人负责签到规则、页面流程及体验验收，借助 AI 完成移动端和管理后台。项目已用于校队日常考勤，实现数字化管理，并持续运行至今。**
 
-### Flutter App
+2026.06—至今 · AI 辅助开发 · 校队实际使用
 
-- 展示当前进行中的签到任务
-- 按姓名拼音排序、搜索和状态筛选成员
-- 点击成员确认签到
-- 自动判断正常、迟到和迟到分钟数
-- 超过结束时间后关闭签到并将未签到成员标记为缺勤
-- 为任意签到状态添加或清空自由文本备注
-- 管理员邮箱密码登录（Supabase Auth）
-- App 内管理成员、分组和签到任务
-- 管理员数据看板和签到详情
-- 竖屏、横屏和大屏布局适配
-- 显式切换在线与离线模式，记住上次选择
-- 联网准备成员名单后，在本机创建、签到、备注和结束离线任务
-- 本机 SQLite 持久化，重启保留记录；结束后手动整单同步，失败可重试
+## 项目介绍视频
 
-离线模式不会因恢复网络、重启或切回在线而自动上传，也不下载、续签已有云端任务。使用流程、迁移要求和数据边界见 [离线签到说明](docs/OFFLINE_MODE.md)。
+[![点击观看队齐介绍视频，约 62 秒](docs/showcase/images/cover.jpg)](https://github.com/GX221015CF/sports-attendance-system/blob/master/docs/showcase/demo.mp4)
 
-### Web 管理后台
+**[▶ 观看第一版完整介绍视频](https://github.com/GX221015CF/sports-attendance-system/blob/master/docs/showcase/demo.mp4)** · [直接打开／下载 MP4](https://raw.githubusercontent.com/GX221015CF/sports-attendance-system/master/docs/showcase/demo.mp4) · [镜头与素材说明](docs/showcase/README.md)
 
-- 数据看板
-- 成员新增、编辑、删除、筛选
-- 分组新增、编辑、删除
-- Excel 批量导入成员
-- 创建、编辑、删除和结束签到任务
-- 查看签到详情并编辑成员备注
-- 单次签到 Excel 导出
-- 多次签到合并统计与批量 Excel 导出
+第一版 Remotion 完整初剪，约 62 秒，1080p / 30fps。视频展示成员管理、创建任务、现场签到、备注、结束结算、Web 与单任务 Excel。画面中的姓名、学号和相关个人字段使用演示映射。结束段切换到另一训练任务，Web 展示历史任务，具体语境见镜头说明。
 
-## 界面预览
+## 业务背景、本人职责与实际使用
 
-<table>
-  <tr>
-    <td align="center" width="33%">
-      <img src="docs/screenshots/admin-dashboard-redacted.png" width="260" alt="管理员数据看板"><br>
-      <sub>管理员数据看板</sub>
-    </td>
-    <td align="center" width="33%">
-      <img src="docs/screenshots/member-management.jpg" width="260" alt="成员管理"><br>
-      <sub>成员管理</sub>
-    </td>
-    <td align="center" width="33%">
-      <img src="docs/screenshots/create-session.jpg" width="260" alt="创建签到"><br>
-      <sub>创建签到</sub>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="33%">
-      <img src="docs/screenshots/current-session.jpg" width="260" alt="今日签到"><br>
-      <sub>今日签到</sub>
-    </td>
-    <td align="center" width="33%">
-      <img src="docs/screenshots/session-member-list.jpg" width="260" alt="成员签到列表"><br>
-      <sub>成员签到列表</sub>
-    </td>
-    <td width="33%"></td>
-  </tr>
-</table>
+### 业务背景
 
-> 截图中的账号、Supabase 项目标识及成员个人信息均已脱敏。
+校队训练需要维护分组与名单、记录到场时间、判断迟到缺勤，并在期末整理考勤。纸质记录与后续汇总之间存在重复整理工作，因此项目围绕训练前、训练中和训练后的连续流程建设。
 
-## 系统架构
+### 本人职责
+
+- **签到规则与流程。** 梳理规定时间、结束时间、正常／迟到／缺勤／未签到状态，以及任务创建、备注和汇总流程。
+- **AI 辅助开发。** 借助 AI 完成移动端与管理后台，持续明确需求、确认方案和反馈使用问题。
+- **体验验收与迭代。** 结合实际设备使用，推进离线流程、平板横屏、长名单、键盘表单和保存反馈优化，并确认交付体验。
+
+源码、数据库脚本、测试和版本记录展示项目实现与验证过程。个人贡献按上述职责说明，代码实现与技术检查包含 AI 工具协作。
+
+### 实际使用成果
+
+项目已用于校队日常考勤，将名单导入、签到、迟到缺勤、离线同步和 Excel 报表纳入数字化管理，并持续运行。当前展示采用功能、实际使用陈述与有来源的验收记录说明成果。
+
+## 核心功能与业务流程
+
+| 环节 | 已实现能力 |
+| --- | --- |
+| 名单准备 | 成员与分组维护、搜索筛选、Excel 导入预览与基础校验 |
+| 任务发布 | 设置规定时间和结束时间，按分组或成员选择参与名单 |
+| 现场签到 | 拼音排序、搜索、状态筛选、单击提交、保存中防重复、失败重试 |
+| 状态判断 | `pending` 未签到、`normal` 正常、`late` 迟到、`absent` 缺勤，记录实际时间与迟到分钟 |
+| 备注与结算 | 自由文本备注、手动结束，以及页面发现过期后的结束处理 |
+| 统计报表 | 人数与出勤率、单任务 Excel、多任务人员汇总和任务明细 |
+| 离线使用 | 提前准备名单，在 SQLite 创建和完成本机新任务，结束后手动同步 |
+| 设备体验 | 平板横屏分区、惰性名单、键盘和表单适配、真实保存后的视觉与声音反馈 |
+
+```text
+成员与分组 / Excel 名单
+    → 创建任务、选择成员与时间
+    → 现场签到、备注
+    → 结束结算、缺勤判断
+    → 出勤统计、Excel 导出
+```
+
+### 离线签到与手动同步
+
+视频聚焦在线业务。项目另有完整的显式离线流程。
+
+```text
+联网准备名单
+    → 本机新建任务
+    → SQLite 保存签到、备注与结束结果
+    → 管理员联网后点击手动同步
+    → Web 查看与导出
+```
+
+本地记录支持重启后读取。同步失败保留结果，稳定任务 ID、上传快照锁定、内容校验和服务端事务回执支持重试。网络恢复后，任务等待管理员显式发起同步。使用条件与数据边界见 [离线模式说明](docs/OFFLINE_MODE.md)。
+
+### 时间与统计口径
+
+- 保存时刻不晚于规定时间，记为正常。
+- 晚于规定时间且不晚于结束时间，记为迟到。分钟差向下取整，最小为 1 分钟。
+- 超过结束时间后禁止签到。手动结束或页面检查发现过期时，剩余未签到记录结算为缺勤。
+- 出勤率为 `(正常 + 迟到) / 应签到`。
+- 备注独立保存在当次考勤记录中，支持编辑与清空。
+
+## 代表截图
+
+以下截图均直接取自上方 full-v1 成片，使用同版演示身份和镜头语境。点击图片可查看原尺寸。
+
+| 成员管理 | 创建签到任务 |
+| --- | --- |
+| [![成员管理](docs/showcase/images/members.png)](docs/showcase/images/members.png) | [![创建签到任务](docs/showcase/images/creation.png)](docs/showcase/images/creation.png) |
+| 维护名单、分组与成员状态 | 选择参与成员并设置规定与结束时间 |
+
+| 现场签到 | 考勤备注 |
+| --- | --- |
+| [![现场签到](docs/showcase/images/checkin.png)](docs/showcase/images/checkin.png) | [![考勤备注](docs/showcase/images/remark.png)](docs/showcase/images/remark.png) |
+| 单击保存后更新状态与人数 | 为当次记录保存训练说明 |
+
+| Web 管理后台 | Excel 签到结果 |
+| --- | --- |
+| [![Web 管理后台](docs/showcase/images/web.png)](docs/showcase/images/web.png) | [![Excel 签到结果](docs/showcase/images/excel.png)](docs/showcase/images/excel.png) |
+| 历史任务详情与导出 | 单任务“签到结果”工作表 |
+
+## 系统架构与技术栈
 
 ```mermaid
 flowchart LR
-    A["Flutter App\n普通签到 + 管理员端"] --> C["Supabase Auth / Data API"]
-    B["React Web 管理后台"] --> C
-    C --> D["PostgreSQL"]
-    D --> E["groups"]
-    D --> F["members"]
-    D --> G["attendance_sessions"]
-    D --> H["session_members"]
+    A[Flutter Android App] --> C[Supabase Auth / Data API]
+    B[React Web 管理后台] --> C
+    C --> D[(PostgreSQL)]
+    A --> E[(SQLite 本机任务)]
+    E --> F[结束后手动同步 RPC]
+    F --> D
 ```
 
-| 模块 | 技术栈 | 目录 |
+| 模块 | 技术与职责 | 目录 |
 | --- | --- | --- |
-| 移动端 | Flutter、Dart、supabase_flutter、sqflite、uuid、intl、lpinyin | `mobile_app/` |
-| Web 后台 | React、Vite、TypeScript、Ant Design、xlsx | `admin_web/` |
-| 数据库 | Supabase PostgreSQL、RLS | `database/` |
-| 产品与运维文档 | Markdown | `docs/` |
-| UI 参考 | Stitch / Figma 导出图 | `design/stitch-ui/` |
+| 移动端 | Flutter、Dart、supabase_flutter、sqflite、uuid、intl、lpinyin | [mobile_app](mobile_app/) |
+| Web 后台 | React、TypeScript、Vite、Ant Design、xlsx、dayjs | [admin_web](admin_web/) |
+| 云端数据 | Supabase PostgreSQL、Auth、SQL RPC、RLS | [database](database/)、[supabase](supabase/) |
+| 原生声音 | Kotlin、平台通道、SoundPool、SharedPreferences | [Android 实现](mobile_app/android/app/src/main/kotlin/com/example/mobile_app/) |
+| 视频展示 | Remotion 成片、同版抽帧与媒体清单 | [showcase](docs/showcase/) |
 
-## 目录结构
+核心数据为 `groups`、`members`、`attendance_sessions`、`session_members`。同一任务与成员组合唯一，迟到分钟具备非负约束，备注通过独立迁移增加。详细契约见 [项目上下文](docs/PROJECT_CONTEXT.md)。
+
+## 配置、运行与验证
+
+准备兼容项目依赖的 Node.js / npm、Flutter SDK、Android SDK，以及自己的 Supabase 开发项目。Dart SDK 约束见 [pubspec.yaml](mobile_app/pubspec.yaml)，Web 依赖见 [package.json](admin_web/package.json)。
+
+### 数据库准备
+
+在自己的开发环境依次应用核心表、备注和离线同步迁移，并配置适合该环境的访问策略。
 
 ```text
-sports-attendance-system/
-├── admin_web/                 # React Web 管理后台
-├── mobile_app/                # Flutter 多平台工程，主要目标为 Android
-├── database/
-│   ├── schema.sql             # 四张核心表、约束和索引
-│   ├── add_session_member_remark.sql
-│   └── dev_rls_policies.sql   # 仅用于开发阶段的宽松 RLS
-├── supabase/
-│   ├── migrations/           # 离线整单同步接口与回执的增量迁移
-│   └── tests/                # 合成数据回滚验证脚本
-├── docs/
-│   ├── OFFLINE_MODE.md
-│   ├── PRD.md
-│   ├── PROJECT_CONTEXT.md
-│   ├── QA_CHECKLIST.md
-│   ├── RUNBOOK.md
-│   └── START_ADMIN_WEB.md
-├── design/stitch-ui/          # UI 参考图
-├── scripts/                   # 预留脚本目录
-└── 启动电脑后台.bat           # Windows Web 后台启动脚本
+database/schema.sql
+database/add_session_member_remark.sql
+supabase/migrations/20261009185846_offline_attendance_sync.sql
 ```
 
-## 数据模型
+[dev_rls_policies.sql](database/dev_rls_policies.sql) 为受控开发验证使用的宽松策略。生产环境需要按角色和业务范围配置授权。详细步骤见 [运行手册](docs/RUNBOOK.md)与[离线说明](docs/OFFLINE_MODE.md)。
 
-| 表 | 用途 | 关键字段 |
-| --- | --- | --- |
-| `groups` | 训练分组 | `name`、`description` |
-| `members` | 队员资料 | `name`、`student_id`、`group_id`、`is_active` |
-| `attendance_sessions` | 签到任务 | `required_time`、`end_time`、`status` |
-| `session_members` | 每次任务中的成员考勤记录 | `status`、`checkin_time`、`late_minutes`、`remark` |
-
-签到状态：
-
-- `pending`：未签到
-- `normal`：正常
-- `late`：迟到
-- `absent`：缺勤
-
-时间判定规则：
-
-```text
-当前时间 <= required_time              -> normal
-required_time < 当前时间 <= end_time   -> late
-当前时间 > end_time 且仍未签到          -> absent
-```
-
-备注保存在 `session_members.remark`。更新备注不会修改签到状态、签到时间或迟到分钟数。
-
-## 环境要求
-
-- Node.js 20 或更高版本
-- npm
-- Flutter SDK（项目当前 Dart SDK 约束见 `mobile_app/pubspec.yaml`）
-- Android Studio / Android SDK（真机或模拟器运行时）
-- 一个 Supabase 项目
-
-可用以下命令检查本地环境：
-
-```powershell
-node --version
-npm --version
-flutter doctor
-flutter devices
-```
-
-## 1. 配置 Supabase
-
-1. 在 Supabase 控制台创建项目。
-2. 在 SQL Editor 中依次执行：
-
-   ```text
-   database/schema.sql
-   database/add_session_member_remark.sql
-   database/dev_rls_policies.sql
-   ```
-
-3. 在 Authentication 中创建管理员邮箱密码账号，供 Flutter 管理员端登录。
-4. 确认以下表已创建：`groups`、`members`、`attendance_sessions`、`session_members`。
-
-使用离线任务手动同步时，还需在上述基线之后执行 `supabase/migrations/20261009185846_offline_attendance_sync.sql`；部署和验证步骤见 [离线签到说明](docs/OFFLINE_MODE.md)。该迁移只增加同步接口和私有回执，不替换原核心表与策略。
-
-`database/dev_rls_policies.sql` 会给 `anon` 和 `authenticated` 开发角色开放四张表的读写权限。它只适合本地开发和 MVP 验证，生产部署前必须替换成按管理员身份和业务范围授权的严格策略。
-
-## 2. 启动 Web 管理后台
-
-进入 Web 目录并安装依赖：
+### Web 后台
 
 ```powershell
 cd admin_web
-npm install
-```
-
-复制环境变量示例：
-
-```powershell
+npm ci
 Copy-Item .env.example .env
-```
-
-在 `admin_web/.env` 中填写自己的前端可用配置：
-
-```dotenv
-VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR_PUBLISHABLE_OR_ANON_KEY
-```
-
-启动开发服务器：
-
-```powershell
+# 在本机填写自己的前端公开客户端配置
 npm run dev
 ```
 
-默认访问地址通常是 <http://localhost:5173>。也可以在项目根目录双击 `启动电脑后台.bat`。
-
-生产构建检查：
-
-```powershell
-npm run build
-```
-
-## 3. 运行 Flutter App
-
-安装依赖：
+### Flutter App
 
 ```powershell
 cd mobile_app
 flutter pub get
-```
-
-复制环境变量示例并填写自己的配置：
-
-```powershell
 Copy-Item .env.example .env
-```
-
-```dotenv
-SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-SUPABASE_ANON_KEY=YOUR_PUBLISHABLE_OR_ANON_KEY
-```
-
-运行到已连接设备：
-
-```powershell
+# 在本机填写自己的前端公开客户端配置
 flutter run -d DEVICE_ID --dart-define-from-file=.env
 ```
 
-也可以显式传入变量，但不建议在共享终端或脚本中留下真实值：
+构建、Android 依赖和安装步骤见 [运行手册](docs/RUNBOOK.md)。真实配置保存于本地被忽略的文件，前端配置使用 publishable／兼容 anon key，服务端密钥保存在服务端安全环境。
+
+### 检查入口
 
 ```powershell
-flutter run -d DEVICE_ID `
-  --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL `
-  --dart-define=SUPABASE_ANON_KEY=YOUR_PUBLISHABLE_OR_ANON_KEY
-```
-
-## 4. 构建 Android APK
-
-Debug APK：
-
-```powershell
-cd mobile_app
-flutter build apk --debug --dart-define-from-file=.env
-```
-
-Release APK：
-
-```powershell
-flutter build apk --release --dart-define-from-file=.env
-```
-
-输出位置：
-
-```text
-mobile_app/build/app/outputs/flutter-apk/app-debug.apk
-mobile_app/build/app/outputs/flutter-apk/app-release.apk
-```
-
-仓库不会提交 `.apk`、`.aab`、`build/` 或本地环境变量文件。
-
-## Excel 导入与导出
-
-Web 后台支持成员名单 Excel 导入，以及单次/批量签到导出。批量导出包含：
-
-- 人员汇总 Sheet
-- 签到总览 Sheet
-- 每次签到的状态、时间、迟到分钟和备注动态列
-- 正常、迟到、缺勤、未签到次数及出勤率
-
-出勤率计算：
-
-```text
-(normal + late) / 应签到次数 * 100%
-```
-
-## 验证与测试
-
-Web：
-
-```powershell
-cd admin_web
+# 在 admin_web 目录
 npm run lint
 npm run build
-```
 
-Flutter：
-
-```powershell
-cd mobile_app
-dart format --output=none --set-exit-if-changed lib test
+# 在 mobile_app 目录
 flutter analyze
 flutter test
+
+# 在项目根目录
+git diff --check
 ```
 
-完整人工验收项见 [docs/QA_CHECKLIST.md](docs/QA_CHECKLIST.md)。重点验证创建签到、正常/迟到判定、结束签到、缺勤标记、备注、Excel 导入导出和横屏布局。
+现有 Flutter 测试覆盖时间边界、SQLite、同步异常、横屏、键盘、表单、动效与音效。2026 年 10 月 25 日 v2 验收记录包含完整 133 项测试通过和平板体验验收。500 人合成名单回归的视口条件、挂载数量及设备反馈见 [交互进展](docs/INTERACTION_PROGRESS.md)和[v2 验收存档](docs/versions/duiqi-ux-audio-v2-20261025.md)。这些数据均保留其历史日期与验证范围。
 
-## 安全说明
+## 当前实现边界与后续改进
 
-- 不要提交 `.env`、数据库密码、JWT、`service_role` 或 Supabase secret key。
-- Flutter 和 Web 前端只能使用 publishable key 或兼容用的 anon key，权限必须由 RLS 控制。
-- 当前 Web 后台直接使用前端 Supabase 客户端，尚未实现独立的 Web 登录和严格管理员授权。
-- `dev_rls_policies.sql` 是开发策略，不是生产安全策略；直接用于公网会让客户端拥有过宽的数据修改权限。
-- 正式部署前应收紧 RLS、补充管理员授权模型、配置正式 Android 签名，并执行真实训练场景回归测试。
+- **授权。** App 有邮箱密码登录，Web 当前直接使用数据客户端。生产级管理员授权和核心表 RLS 仍需完善，登录身份与业务操作权限需要独立设计。
+- **历史留存。** 当前删除成员或任务会级联删除对应考勤。长期使用需要结合停用、归档与备份策略完善历史保留。
+- **离线条件。** 离线创建本机新任务，使用提前准备的名单和设备时钟。当前支持结束后整单手动同步，本地备份、跨设备搬迁与更完整的时间可信性仍可继续建设。
+- **发布配置。** 队齐名称与图标已接入。正式签名、隐私说明、多设备验证和数据备份属于后续发布准备。
+- **持续验证。** 后续结合真实训练流程继续回归，并补充 Web 自动化与可复核的业务指标。
 
-仓库已通过常见密钥模式扫描；`.env`、构建产物和安装包由 `.gitignore` 排除。示例环境文件只包含变量名和占位值。
+## 资料索引与素材来源
 
-## 文档索引
+| 资料 | 内容 |
+| --- | --- |
+| [展示说明](docs/showcase/README.md) | 第一版视频、镜头语境、代表帧和媒体参数 |
+| [素材与许可状态](docs/showcase/ASSET_SOURCES.md) | 项目素材、依赖、声音来源及当前许可范围 |
+| [产品需求](docs/PRD.md) | 初版角色、MVP 与业务规则 |
+| [项目上下文](docs/PROJECT_CONTEXT.md) | 当前数据契约、功能与迭代依据 |
+| [运行手册](docs/RUNBOOK.md) | 数据库、Web、Flutter 与构建 |
+| [离线模式](docs/OFFLINE_MODE.md) | 名单准备、本机任务、同步与失败处理 |
+| [QA 清单](docs/QA_CHECKLIST.md) | 人工业务检查入口 |
+| [交互迭代](docs/INTERACTION_PROGRESS.md) | 横屏、键盘、长名单及体验验证 |
+| [音效说明](docs/INTERACTION_AUDIO.md) | 声音映射、保存时机与平台实现 |
+| [v2 验收记录](docs/versions/duiqi-ux-audio-v2-20261025.md) | 已验收应用源码与历史测试证据 |
 
-- [产品需求文档](docs/PRD.md)
-- [项目上下文](docs/PROJECT_CONTEXT.md)
-- [运行手册](docs/RUNBOOK.md)
-- [QA 检查清单](docs/QA_CHECKLIST.md)
-- [Windows 后台启动说明](docs/START_ADMIN_WEB.md)
-- [Codex 开发任务清单](docs/CODEX_TASKS.md)
-
-## 当前状态与后续重点
-
-当前 MVP 已可运行，手机端和 Web 端通过同一个 Supabase 项目同步数据。后续优先级：
-
-1. 收紧生产环境 RLS 和管理员权限模型。
-2. 补充 Web 管理员登录与访问控制。
-3. 配置正式应用名称、图标和 Android 发布签名。
-4. 增加自动化测试和真实训练场景回归测试。
+仓库用于个人项目与作品集展示，当前未配置通用开源许可证。第三方依赖及参考素材各自适用其来源与许可，相关状态见素材说明。
